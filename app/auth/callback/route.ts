@@ -1,12 +1,15 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getServerSupabase } from "@/lib/supabase/auth";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   const supabase = getServerSupabase();
   const { data: { user } } = await supabase.auth.getUser();
   
+  // Get the origin from the request
+  const origin = request.nextUrl.origin;
+  
   if (!user) {
-    return NextResponse.redirect(new URL("/", process.env.NEXT_PUBLIC_APP_URL!));
+    return NextResponse.redirect(new URL("/", origin));
   }
 
   // Create or ensure users row exists
@@ -25,5 +28,5 @@ export async function GET() {
     });
   }
 
-  return NextResponse.redirect(new URL("/demo", process.env.NEXT_PUBLIC_APP_URL!));
+  return NextResponse.redirect(new URL("/demo", origin));
 }
