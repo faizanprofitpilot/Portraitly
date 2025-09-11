@@ -162,7 +162,7 @@ export default function LandingPage() {
                   ) : (
                     <>
                       <Crown className="h-5 w-5" />
-                      <span>Try 10 Free Credits</span>
+                      <span>Get Started</span>
                       <ArrowRight className="h-5 w-5" />
                     </>
                   )}
