@@ -1,51 +1,21 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { createClient } from '@/lib/supabase/client'
+import { useState } from 'react'
+import { useAuth } from '@/contexts/AuthContext'
 import { Camera, ArrowRight, CheckCircle, Star, Shield, Zap, Users, Download, Sparkles, Play, LogOut, Crown, Award, Globe } from 'lucide-react'
 import BackgroundPattern from './BackgroundPattern'
 import BeforeAfterSlider from './BeforeAfterSlider'
 
 export default function LandingPage() {
   const [loading, setLoading] = useState(false)
-  const [user, setUser] = useState<any>(null)
-  const supabase = createClient()
-
-  useEffect(() => {
-    // Check if user is authenticated
-    const getUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      setUser(user)
-    }
-    getUser()
-
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      setUser(session?.user ?? null)
-    })
-
-    return () => subscription.unsubscribe()
-  }, [])
+  const { user, signIn, signOut } = useAuth()
 
   const handleGoogleSignIn = async () => {
     setLoading(true)
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: `${window.location.origin}/auth/callback`
-        }
-      })
-      
-      if (error) {
-        console.error('OAuth error:', error)
-        // Fallback to demo if OAuth fails
-        window.location.href = '/demo'
-      }
+      await signIn()
     } catch (error) {
       console.error('Sign in error:', error)
-      // Fallback to demo if OAuth fails
-      window.location.href = '/demo'
     } finally {
       setLoading(false)
     }
@@ -54,8 +24,7 @@ export default function LandingPage() {
   const handleSignOut = async () => {
     setLoading(true)
     try {
-      const { error } = await supabase.auth.signOut()
-      if (error) throw error
+      await signOut()
     } catch (error) {
       console.error('Error signing out:', error)
     } finally {
