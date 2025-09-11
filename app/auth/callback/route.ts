@@ -1,13 +1,30 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSupabase } from "@/lib/supabase/auth";
+import { createClient } from "@supabase/supabase-js";
 
 export async function GET(request: NextRequest) {
   try {
-    const supabase = getServerSupabase();
-    const { data: { user } } = await supabase.auth.getUser();
-    
     // Get the origin from the request
     const origin = request.nextUrl.origin;
+    
+    // Create a service role client that bypasses RLS
+    const supabaseService = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false
+        }
+      }
+    );
+
+    // Also create regular client for auth
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    );
+
+    const { data: { user } } = await supabase.auth.getUser();
     
     if (!user) {
       console.log('No user found in auth callback');
@@ -16,8 +33,8 @@ export async function GET(request: NextRequest) {
 
     console.log('Auth callback - User found:', user.email);
 
-    // Create or ensure users row exists
-    const { data: existing, error: selectError } = await supabase
+    // Check if user exists using service role (bypasses RLS)
+    const { data: existing, error: selectError } = await supabaseService
       .from("users")
       .select("id")
       .eq("auth_user_id", user.id)
@@ -30,7 +47,8 @@ export async function GET(request: NextRequest) {
 
     if (!existing) {
       console.log('Creating new user record for:', user.email);
-      const { error: insertError } = await supabase.from("users").insert({
+      // Use service role to insert user (bypasses RLS)
+      const { error: insertError } = await supabaseService.from("users").insert({
         auth_user_id: user.id,
         email: user.email!,
         plan: "free",
