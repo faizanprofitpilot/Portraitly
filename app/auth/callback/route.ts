@@ -50,7 +50,8 @@ export async function GET(request: NextRequest) {
 
     if (!existing) {
       console.log('Creating new user record for:', user.email);
-      // Use service role to insert user (bypasses RLS)
+      
+      // Use service role to insert user (should bypass RLS)
       const { error: insertError } = await supabaseService.from("users").insert({
         auth_user_id: user.id,
         email: user.email!,
@@ -60,6 +61,7 @@ export async function GET(request: NextRequest) {
 
       if (insertError) {
         console.error('Error creating user:', insertError);
+        console.error('Full error details:', JSON.stringify(insertError, null, 2));
         return NextResponse.redirect(new URL("/?error=user_creation_failed", origin));
       }
       
