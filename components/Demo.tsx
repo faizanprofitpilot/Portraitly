@@ -27,36 +27,63 @@ export default function Demo() {
   const [showMobileUpload, setShowMobileUpload] = useState(false)
   const [sessionId, setSessionId] = useState<string>('')
   const [user, setUser] = useState<any>(null)
+  const [isLoadingAuth, setIsLoadingAuth] = useState(true)
   const supabase = createClient()
 
   // Check authentication and fetch user credits
   useEffect(() => {
     const checkAuth = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (user) {
-        setUser(user)
-        
-        // Fetch user's credits from database
-        try {
-          const { data: userData } = await supabase
-            .from('users')
-            .select('credits_remaining')
-            .eq('auth_user_id', user.id)
-            .single()
+      try {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (user) {
+          setUser(user)
           
-          if (userData) {
-            setCredits(userData.credits_remaining)
+          // Fetch user's credits from database
+          try {
+            const { data: userData } = await supabase
+              .from('users')
+              .select('credits_remaining')
+              .eq('auth_user_id', user.id)
+              .single()
+            
+            if (userData) {
+              setCredits(userData.credits_remaining)
+            }
+          } catch (error) {
+            console.error('Error fetching user credits:', error)
           }
-        } catch (error) {
-          console.error('Error fetching user credits:', error)
+          setIsLoadingAuth(false)
+        } else {
+          setIsLoadingAuth(false)
+          // Give a moment for auth to initialize after OAuth redirect
+          setTimeout(() => {
+            supabase.auth.getUser().then(({ data: { user } }) => {
+              if (!user) {
+                window.location.href = '/'
+              }
+            })
+          }, 3000)
         }
-      } else {
-        // Redirect to home if not authenticated
-        window.location.href = '/'
+      } catch (error) {
+        console.error('Auth check error:', error)
+        setIsLoadingAuth(false)
       }
     }
     
     checkAuth()
+
+    // Listen for auth state changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' && session?.user) {
+        setUser(session.user)
+        setIsLoadingAuth(false)
+      } else if (event === 'SIGNED_OUT') {
+        setUser(null)
+        window.location.href = '/'
+      }
+    })
+
+    return () => subscription.unsubscribe()
   }, [supabase])
 
   // Generate session ID on component mount
@@ -281,6 +308,18 @@ export default function Demo() {
       default:
         return '#c0392b'
     }
+  }
+
+  // Show loading state while checking authentication
+  if (isLoadingAuth) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-magical-dark via-magical-deep to-magical-teal flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
+          <p className="text-white text-lg">Loading your account...</p>
+        </div>
+      </div>
+    )
   }
 
   return (
