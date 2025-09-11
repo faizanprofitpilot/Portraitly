@@ -14,8 +14,13 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
 
   useEffect(() => {
     if (!isLoading && !user) {
-      // User is not authenticated, redirect to home
-      router.push('/')
+      // Give auth time to initialize after OAuth redirect
+      const timer = setTimeout(() => {
+        console.log('No user found after delay, redirecting to home')
+        router.push('/')
+      }, 3000) // Wait 3 seconds for auth to initialize
+      
+      return () => clearTimeout(timer)
     }
   }, [user, isLoading, router])
 
