@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { getServerSupabase } from "@/lib/supabase/auth";
 
+// Force dynamic rendering
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   try {
     const supabase = getServerSupabase();
