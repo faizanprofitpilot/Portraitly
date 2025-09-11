@@ -30,28 +30,52 @@ export default function Demo() {
   const [isLoadingAuth, setIsLoadingAuth] = useState(true)
   const supabase = createClient()
 
-  // Check authentication and fetch user credits
+  // Check authentication and create/ensure user exists
   useEffect(() => {
-    const checkAuth = async () => {
+    const checkAuthAndCreateUser = async () => {
       try {
         const { data: { user } } = await supabase.auth.getUser()
         if (user) {
           setUser(user)
           
-          // Fetch user's credits from database
+          // Check if user exists in database, create if not
           try {
-            const { data: userData } = await supabase
+            const { data: existingUser } = await supabase
               .from('users')
               .select('credits_remaining')
               .eq('auth_user_id', user.id)
               .single()
             
-            if (userData) {
-              setCredits(userData.credits_remaining)
+            if (existingUser) {
+              // User exists, set their credits
+              setCredits(existingUser.credits_remaining)
+            } else {
+              // User doesn't exist, create them
+              console.log('Creating new user in database:', user.email)
+              const { error: insertError } = await supabase
+                .from('users')
+                .insert({
+                  auth_user_id: user.id,
+                  email: user.email!,
+                  plan: 'free',
+                  credits_remaining: 10
+                })
+              
+              if (insertError) {
+                console.error('Error creating user:', insertError)
+                // Still continue with demo credits
+                setCredits(10)
+              } else {
+                console.log('User created successfully')
+                setCredits(10)
+              }
             }
           } catch (error) {
-            console.error('Error fetching user credits:', error)
+            console.error('Error with user database operations:', error)
+            // Fallback to demo credits
+            setCredits(10)
           }
+          
           setIsLoadingAuth(false)
         } else {
           setIsLoadingAuth(false)
@@ -70,13 +94,14 @@ export default function Demo() {
       }
     }
     
-    checkAuth()
+    checkAuthAndCreateUser()
 
     // Listen for auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_IN' && session?.user) {
         setUser(session.user)
-        setIsLoadingAuth(false)
+        // Trigger user creation check
+        checkAuthAndCreateUser()
       } else if (event === 'SIGNED_OUT') {
         setUser(null)
         window.location.href = '/'
