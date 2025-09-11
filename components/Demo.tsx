@@ -247,7 +247,7 @@ export default function Demo() {
                   <h3 className="text-lg font-medium text-gray-900 mb-3">Original</h3>
                   <div className="relative">
                     <img
-                      src={selectedImage}
+                      src={selectedImage || ''}
                       alt="Original"
                       className="w-full aspect-[4/5] object-cover rounded-xl"
                     />
@@ -265,7 +265,7 @@ export default function Demo() {
                   <h3 className="text-lg font-medium text-gray-900 mb-3">AI Generated</h3>
                   <div className="relative">
                     <img
-                      src={generatedImage}
+                      src={generatedImage || ''}
                       alt="Generated"
                       className="w-full aspect-[4/5] object-cover rounded-xl"
                     />
