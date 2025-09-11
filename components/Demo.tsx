@@ -20,14 +20,13 @@ export default function Demo() {
   const [selectedStyle, setSelectedStyle] = useState('professional')
   const [uploading, setUploading] = useState(false)
   const [generatedImage, setGeneratedImage] = useState<string | null>(null)
-  const [credits, setCredits] = useState(10) // Default for demo mode
+  const [credits, setCredits] = useState(0) // Will be fetched from database
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [originalImageUrl, setOriginalImageUrl] = useState<string | null>(null)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [showMobileUpload, setShowMobileUpload] = useState(false)
   const [sessionId, setSessionId] = useState<string>('')
   const [user, setUser] = useState<any>(null)
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
   const supabase = createClient()
 
   // Check authentication and fetch user credits
@@ -36,7 +35,6 @@ export default function Demo() {
       const { data: { user } } = await supabase.auth.getUser()
       if (user) {
         setUser(user)
-        setIsAuthenticated(true)
         
         // Fetch user's credits from database
         try {
@@ -53,9 +51,8 @@ export default function Demo() {
           console.error('Error fetching user credits:', error)
         }
       } else {
-        // Demo mode - keep default 10 credits
-        setIsAuthenticated(false)
-        setCredits(10)
+        // Redirect to home if not authenticated
+        window.location.href = '/'
       }
     }
     
@@ -145,7 +142,7 @@ export default function Demo() {
         body: JSON.stringify({
           imageBase64: base64,
           style: selectedStyle,
-          isDemo: !isAuthenticated
+          isDemo: false
         })
       })
 
@@ -165,25 +162,19 @@ export default function Demo() {
         console.log('✅ Generated image URL received:', result.url.substring(0, 100) + '...')
         setGeneratedImage(result.url)
         
-        // Update credits (decrement for demo mode, or refresh from DB for authenticated users)
-        if (isAuthenticated) {
-          // Refresh credits from database for authenticated users
-          try {
-            const { data: userData } = await supabase
-              .from('users')
-              .select('credits_remaining')
-              .eq('auth_user_id', user.id)
-              .single()
-            
-            if (userData) {
-              setCredits(userData.credits_remaining)
-            }
-          } catch (error) {
-            console.error('Error refreshing credits:', error)
+        // Refresh credits from database after generation
+        try {
+          const { data: userData } = await supabase
+            .from('users')
+            .select('credits_remaining')
+            .eq('auth_user_id', user.id)
+            .single()
+          
+          if (userData) {
+            setCredits(userData.credits_remaining)
           }
-        } else {
-          // Decrement for demo mode
-          setCredits(prev => prev - 1)
+        } catch (error) {
+          console.error('Error refreshing credits:', error)
         }
         
         setSelectedFile(null)
@@ -306,13 +297,10 @@ export default function Demo() {
             <div className="flex items-center space-x-2 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-lg">
               <Sparkles className="h-4 w-4 text-yellow-400" />
               <span className="text-sm font-medium text-white">
-                {isAuthenticated 
-                  ? `${credits} credits remaining` 
-                  : `${credits} demo credits remaining`
-                }
+                {credits} free credits remaining
               </span>
             </div>
-            {isAuthenticated && user && (
+            {user && (
               <div className="flex items-center space-x-2 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-lg">
                 <span className="text-sm text-white/80">
                   Welcome, {user.email?.split('@')[0]}
@@ -327,16 +315,13 @@ export default function Demo() {
         {/* Demo Header */}
         <div className="text-center mb-12">
           <h1 className="text-6xl font-bold text-white mb-6">
-            {isAuthenticated ? 'Welcome to ' : 'Try '}Portraitly{' '}
+            Welcome to Portraitly{' '}
             <span className="bg-gradient-to-r from-accent-turquoise to-accent-emerald bg-clip-text text-transparent">
-              {isAuthenticated ? 'Pro' : 'Demo'}
+              Free
             </span>
           </h1>
           <p className="text-xl text-gray-300 mb-8 max-w-2xl mx-auto">
-            {isAuthenticated 
-              ? 'Transform your selfies into professional headshots with AI. Upload a photo and see the magic!'
-              : 'Test our AI headshot generation without signing up. Upload a selfie and see the magic!'
-            }
+            Transform your selfies into professional headshots with AI. Upload a photo and see the magic!
           </p>
         </div>
 

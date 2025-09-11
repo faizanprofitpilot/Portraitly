@@ -151,7 +151,7 @@ export default function LandingPage() {
                 Perfect for LinkedIn, resumes, and professional profiles.
               </p>
 
-              <div className="flex flex-col sm:flex-row gap-4 mb-8">
+              <div className="flex justify-center mb-8">
                 <button
                   onClick={handleGoogleSignIn}
                   disabled={loading}
@@ -162,18 +162,11 @@ export default function LandingPage() {
                   ) : (
                     <>
                       <Crown className="h-5 w-5" />
-                      <span>Get Started</span>
+                      <span>Try for Free</span>
                       <ArrowRight className="h-5 w-5" />
                     </>
                   )}
                 </button>
-                <a
-                  href="/demo"
-                  className="bg-white/10 backdrop-blur-sm text-white font-bold text-lg px-8 py-4 rounded-xl hover:bg-white/20 transition-colors duration-200 flex items-center justify-center space-x-3 border border-white/20"
-                >
-                  <Play className="h-5 w-5" />
-                  <span>See Demo</span>
-                </a>
               </div>
 
               {/* Trust Badges */}
