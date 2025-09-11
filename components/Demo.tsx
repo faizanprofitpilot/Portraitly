@@ -78,15 +78,21 @@ export default function Demo() {
           
           setIsLoadingAuth(false)
         } else {
-          setIsLoadingAuth(false)
-          // Give a moment for auth to initialize after OAuth redirect
+          // User not authenticated yet - wait longer for OAuth redirect to complete
+          console.log('No user found, waiting for auth to initialize...')
           setTimeout(() => {
             supabase.auth.getUser().then(({ data: { user } }) => {
-              if (!user) {
+              if (user) {
+                console.log('User found after delay:', user.email)
+                // Re-run the auth check
+                checkAuthAndCreateUser()
+              } else {
+                console.log('Still no user after delay, redirecting to home')
+                setIsLoadingAuth(false)
                 window.location.href = '/'
               }
             })
-          }, 3000)
+          }, 5000) // Increased delay to 5 seconds
         }
       } catch (error) {
         console.error('Auth check error:', error)
@@ -98,13 +104,20 @@ export default function Demo() {
 
     // Listen for auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('Auth state change:', event, session?.user?.email)
       if (event === 'SIGNED_IN' && session?.user) {
         setUser(session.user)
+        setIsLoadingAuth(false)
         // Trigger user creation check
         checkAuthAndCreateUser()
       } else if (event === 'SIGNED_OUT') {
         setUser(null)
         window.location.href = '/'
+      } else if (event === 'TOKEN_REFRESHED' && session?.user) {
+        // Handle token refresh as a sign-in event
+        setUser(session.user)
+        setIsLoadingAuth(false)
+        checkAuthAndCreateUser()
       }
     })
 
