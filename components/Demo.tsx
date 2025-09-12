@@ -70,6 +70,8 @@ export default function Demo() {
         )
         
         console.log('📱 Polling for mobile uploads:', completedUploads)
+        console.log('📱 Session ID:', sessionId)
+        console.log('📱 localStorage key:', `mobileUploads_${sessionId}`)
         
         if (completedUploads.length > 0) {
           // Process the first uploaded file

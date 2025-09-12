@@ -53,25 +53,33 @@ export default function MobileUploadPage() {
 
         if (response.ok) {
           const result = await response.json();
+          console.log('📱 Mobile upload successful:', result);
           setUploadedFiles(prev => [...prev, result.filename]);
           
           // Store in localStorage for polling
           const completedUploads = JSON.parse(
             localStorage.getItem(`mobileUploads_${sessionId}`) || '[]'
           );
-          completedUploads.push({
+          const uploadData = {
             filename: result.filename,
             timestamp: Date.now(),
             originalName: file.name
-          });
+          };
+          completedUploads.push(uploadData);
           localStorage.setItem(`mobileUploads_${sessionId}`, JSON.stringify(completedUploads));
+          
+          console.log('📱 Stored in localStorage:', uploadData);
+          console.log('📱 All uploads for session:', completedUploads);
           
           // Also store file data as base64 for fallback
           const reader = new FileReader();
           reader.onload = () => {
             localStorage.setItem(`mobileUpload_${result.filename}`, JSON.stringify(reader.result));
+            console.log('📱 Stored base64 backup for:', result.filename);
           };
           reader.readAsDataURL(file);
+        } else {
+          console.error('📱 Upload failed:', response.status, response.statusText);
         }
       }
       
