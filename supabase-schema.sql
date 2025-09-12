@@ -80,6 +80,9 @@ ALTER TABLE photos ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "users_by_owner" ON users
   FOR SELECT USING (auth.uid()::text = auth_user_id::text);
 
+CREATE POLICY "users_insert_own" ON users
+  FOR INSERT WITH CHECK (auth.uid()::text = auth_user_id::text);
+
 CREATE POLICY "users_update_own" ON users
   FOR UPDATE USING (auth.uid()::text = auth_user_id::text);
 
