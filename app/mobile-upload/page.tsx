@@ -65,6 +65,13 @@ export default function MobileUploadPage() {
             originalName: file.name
           });
           localStorage.setItem(`mobileUploads_${sessionId}`, JSON.stringify(completedUploads));
+          
+          // Also store file data as base64 for fallback
+          const reader = new FileReader();
+          reader.onload = () => {
+            localStorage.setItem(`mobileUpload_${result.filename}`, JSON.stringify(reader.result));
+          };
+          reader.readAsDataURL(file);
         }
       }
       

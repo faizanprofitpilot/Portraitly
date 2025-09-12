@@ -69,16 +69,26 @@ export default function Demo() {
           localStorage.getItem(`mobileUploads_${sessionId}`) || '[]'
         )
         
+        console.log('📱 Polling for mobile uploads:', completedUploads)
+        
         if (completedUploads.length > 0) {
           // Process the first uploaded file
           const uploadedFile = completedUploads[0]
           const imageUrl = `/uploads/${uploadedFile.filename}`
           
+          console.log('📸 Processing mobile upload:', uploadedFile, 'URL:', imageUrl)
+          
           // Create a File object from the uploaded image
           fetch(imageUrl)
-            .then(response => response.blob())
+            .then(response => {
+              if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+              }
+              return response.blob()
+            })
             .then(blob => {
               const file = new File([blob], uploadedFile.originalName, { type: 'image/jpeg' })
+              console.log('✅ Mobile upload processed successfully:', file.name)
               setSelectedFile(file)
               setPreviewUrl(imageUrl)
               setOriginalImageUrl(imageUrl)
@@ -87,11 +97,38 @@ export default function Demo() {
               localStorage.removeItem(`mobileUploads_${sessionId}`)
             })
             .catch(error => {
-              console.error('Error loading mobile upload:', error)
+              console.error('❌ Error loading mobile upload:', error)
+              // Try alternative approach - create File from localStorage data
+              try {
+                // Get the file data from localStorage if available
+                const uploadData = localStorage.getItem(`mobileUpload_${uploadedFile.filename}`)
+                if (uploadData) {
+                  const base64Data = JSON.parse(uploadData)
+                  const byteCharacters = atob(base64Data.split(',')[1])
+                  const byteNumbers = new Array(byteCharacters.length)
+                  for (let i = 0; i < byteCharacters.length; i++) {
+                    byteNumbers[i] = byteCharacters.charCodeAt(i)
+                  }
+                  const byteArray = new Uint8Array(byteNumbers)
+                  const blob = new Blob([byteArray], { type: 'image/jpeg' })
+                  const file = new File([blob], uploadedFile.originalName, { type: 'image/jpeg' })
+                  
+                  setSelectedFile(file)
+                  setPreviewUrl(URL.createObjectURL(blob))
+                  setOriginalImageUrl(URL.createObjectURL(blob))
+                  
+                  console.log('✅ Mobile upload processed from localStorage:', file.name)
+                }
+              } catch (fallbackError) {
+                console.error('❌ Fallback also failed:', fallbackError)
+              }
+              
+              // Remove failed upload from localStorage to prevent infinite retry
+              localStorage.removeItem(`mobileUploads_${sessionId}`)
             })
         }
       } catch (error) {
-        console.error('Error polling for uploads:', error)
+        console.error('❌ Error polling for uploads:', error)
       }
     }
 
@@ -295,6 +332,13 @@ export default function Demo() {
           </Link>
           
           <div className="flex items-center space-x-4">
+            {userData && (
+              <div className="flex items-center space-x-2 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-lg">
+                <span className="text-sm font-medium text-white">
+                  {userData.email}
+                </span>
+              </div>
+            )}
             <div className="flex items-center space-x-2 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-lg">
               <Sparkles className="h-4 w-4 text-yellow-400" />
               <span className="text-sm font-medium text-white">
