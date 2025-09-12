@@ -1,14 +1,5 @@
-import { createClient } from '@/lib/supabase/server'
-import { redirect } from 'next/navigation'
-import Dashboard from '@/components/Dashboard'
+import Demo from '@/components/Demo'
 
-export default async function DashboardPage() {
-  const supabase = createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-
-  if (!user) {
-    redirect('/')
-  }
-
-  return <Dashboard user={user} />
+export default function DashboardPage() {
+  return <Demo />
 }

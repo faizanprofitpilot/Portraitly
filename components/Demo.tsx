@@ -298,7 +298,7 @@ export default function Demo() {
             <div className="flex items-center space-x-2 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-lg">
               <Sparkles className="h-4 w-4 text-yellow-400" />
               <span className="text-sm font-medium text-white">
-                {credits} demo credits remaining
+                {credits} credits remaining
               </span>
             </div>
             <button
@@ -315,13 +315,13 @@ export default function Demo() {
         {/* Demo Header */}
         <div className="text-center mb-12">
           <h1 className="text-6xl font-bold text-white mb-6">
-            Try Portraitly{' '}
+            Welcome to{' '}
             <span className="bg-gradient-to-r from-accent-turquoise to-accent-emerald bg-clip-text text-transparent">
-              Demo
+              Portraitly
             </span>
           </h1>
           <p className="text-xl text-gray-300 mb-8 max-w-2xl mx-auto">
-            Test our AI headshot generation without signing up. Upload a selfie and see the magic!
+            Upload a selfie and transform it into a professional headshot with AI magic!
           </p>
         </div>
 

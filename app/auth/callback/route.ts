@@ -40,8 +40,8 @@ export async function GET(request: NextRequest) {
         return NextResponse.redirect(new URL(`/?error=${encodeURIComponent(error.message)}`, origin));
       }
 
-      // Successfully authenticated, redirect to demo
-      return NextResponse.redirect(new URL('/demo', origin));
+      // Successfully authenticated, redirect to dashboard
+      return NextResponse.redirect(new URL('/dashboard', origin));
     } catch (error) {
       console.error('Unexpected auth callback error:', error);
       return NextResponse.redirect(new URL(`/?error=unexpected_error`, origin));
