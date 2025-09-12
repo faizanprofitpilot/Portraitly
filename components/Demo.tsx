@@ -1,10 +1,9 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Camera, Download, ArrowLeft, Sparkles, Image as ImageIcon, CheckCircle, X, Maximize2, Smartphone, LogOut } from 'lucide-react'
+import { Camera, Download, ArrowLeft, Sparkles, Image as ImageIcon, CheckCircle, X, Maximize2, Smartphone } from 'lucide-react'
 import Link from 'next/link'
 import MobileUploadModal from './MobileUploadModal'
-import { createClient } from '@/lib/supabase'
 
 const STYLE_OPTIONS = [
   { id: 'professional', name: 'Professional', description: 'Clean, corporate look perfect for LinkedIn' },
@@ -20,72 +19,44 @@ export default function Demo() {
   const [selectedStyle, setSelectedStyle] = useState('professional')
   const [uploading, setUploading] = useState(false)
   const [generatedImage, setGeneratedImage] = useState<string | null>(null)
-  const [credits, setCredits] = useState(0)
+  const [credits, setCredits] = useState(10)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [originalImageUrl, setOriginalImageUrl] = useState<string | null>(null)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [showMobileUpload, setShowMobileUpload] = useState(false)
   const [sessionId, setSessionId] = useState<string>('')
-  const [user, setUser] = useState<any>(null)
   const [userData, setUserData] = useState<any>(null)
-  const [isLoading, setIsLoading] = useState(true)
-  
-  const supabase = createClient()
-
-  // Initialize auth and user data
-  useEffect(() => {
-    const initializeAuth = async () => {
-      try {
-        // Get current user
-        const { data: { user }, error: authError } = await supabase.auth.getUser()
-        
-        if (authError || !user) {
-          console.error('Auth error:', authError)
-          window.location.href = '/'
-          return
-        }
-
-        setUser(user)
-
-        // Ensure user exists in database
-        const ensureResponse = await fetch('/api/ensure-user', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        })
-
-        if (!ensureResponse.ok) {
-          console.error('Failed to ensure user exists')
-          window.location.href = '/'
-          return
-        }
-
-        const ensureData = await ensureResponse.json()
-        
-        if (ensureData.success) {
-          setUserData(ensureData.user)
-          setCredits(ensureData.user.credits_remaining)
-        } else {
-          console.error('User ensure failed:', ensureData.error)
-          window.location.href = '/'
-          return
-        }
-
-        setIsLoading(false)
-      } catch (error) {
-        console.error('Initialization error:', error)
-        window.location.href = '/'
-      }
-    }
-
-    initializeAuth()
-  }, [])
+  const [isLoadingAuth, setIsLoadingAuth] = useState(true)
 
   // Generate session ID on component mount
   useEffect(() => {
     const newSessionId = `upload_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
     setSessionId(newSessionId)
+  }, [])
+
+  // Fetch user data and credits on mount
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        // First ensure user exists
+        await fetch('/api/ensure-user', { method: 'POST' })
+        
+        // Then fetch user data and credits
+        const response = await fetch('/api/get-user')
+        const data = await response.json()
+        
+        if (data.user && data.credits !== undefined) {
+          setUserData(data.user)
+          setCredits(data.credits)
+        }
+      } catch (error) {
+        console.error('Error fetching user data:', error)
+      } finally {
+        setIsLoadingAuth(false)
+      }
+    }
+
+    fetchUserData()
   }, [])
 
   // Poll for mobile uploads
@@ -124,339 +95,488 @@ export default function Demo() {
       }
     }
 
-    const interval = setInterval(pollForUploads, 1000)
+    const interval = setInterval(pollForUploads, 2000)
     return () => clearInterval(interval)
   }, [sessionId])
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     if (file) {
       setSelectedFile(file)
-      setPreviewUrl(URL.createObjectURL(file))
-      setOriginalImageUrl(URL.createObjectURL(file))
-      setGeneratedImage(null) // Clear previous generation
+      // Create preview URL for the uploaded image
+      const url = URL.createObjectURL(file)
+      setPreviewUrl(url)
+      setOriginalImageUrl(url) // Store original image URL separately
     }
   }
 
   const handleGenerate = async () => {
-    if (!selectedFile || !previewUrl) return
+    if (!selectedFile || credits === 0) return
+
+    console.log('🎯 Starting Gemini 2.5 Flash generation with style:', selectedStyle)
+    console.log('📁 Selected file:', selectedFile.name)
 
     setUploading(true)
     try {
-      // Convert file to base64
-      const reader = new FileReader()
-      reader.onload = async (e) => {
-        const base64Image = e.target?.result as string
-        
-        const response = await fetch('/api/generate-headshot', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            image: base64Image,
-            style: selectedStyle,
-            isDemo: false
-          }),
+      // Convert file to base64 for API
+      const base64 = await fileToBase64(selectedFile)
+      
+      // Create the prompt based on selected style
+      const stylePrompt = getStylePrompt(selectedStyle)
+      
+      console.log('🤖 Calling Gemini 2.5 Flash API...')
+      console.log('📝 Prompt:', stylePrompt)
+      
+      // Call Gemini 2.5 Flash API
+      const response = await fetch('/api/generate-headshot', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          imageBase64: base64,
+          style: selectedStyle,
+          isDemo: true
         })
+      })
 
-        if (!response.ok) {
-          throw new Error('Failed to generate headshot')
+      if (!response.ok) {
+        const errorData = await response.json()
+        if (response.status === 402 && errorData.requiresUpgrade) {
+          alert('No credits remaining! Please sign up for unlimited generations.')
+          return
         }
-
-        const data = await response.json()
-        setGeneratedImage(data.image)
-        
-        // Refresh user data to get updated credits
-        const userResponse = await fetch('/api/get-user')
-        if (userResponse.ok) {
-          const userDataResponse = await userResponse.json()
-          if (userDataResponse.success) {
-            setUserData(userDataResponse.user)
-            setCredits(userDataResponse.user.credits_remaining)
-          }
-        }
-
-        // Auto-scroll to results
-        setTimeout(() => {
-          const outputSection = document.getElementById('output-section')
-          if (outputSection) {
-            outputSection.scrollIntoView({ behavior: 'smooth', block: 'start' })
-          }
-        }, 500)
+        throw new Error(`API Error: ${response.status}`)
       }
-      reader.readAsDataURL(selectedFile)
+
+      const result = await response.json()
+      console.log('✅ Gemini API response:', result)
+
+      if (result.url) {
+        console.log('✅ Generated image URL received:', result.url.substring(0, 100) + '...')
+        setGeneratedImage(result.url)
+        setCredits(prev => prev - 1)
+        setSelectedFile(null)
+        setPreviewUrl(null)
+
+        // Reset file input
+        const fileInput = document.getElementById('file-upload') as HTMLInputElement
+        if (fileInput) fileInput.value = ''
+        
+        // Scroll to the generated image section
+        setTimeout(() => {
+          const outputSection = document.getElementById('generated-output')
+          if (outputSection) {
+            outputSection.scrollIntoView({ 
+              behavior: 'smooth',
+              block: 'start'
+            })
+          }
+        }, 100)
+      } else {
+        throw new Error('No generated image returned')
+      }
+
     } catch (error) {
-      console.error('Error generating headshot:', error)
-      alert('Failed to generate headshot. Please try again.')
+      console.error('❌ Error generating with Gemini:', error)
+      alert('Failed to generate headshot with AI. Please try again.')
     } finally {
       setUploading(false)
     }
   }
 
   const handleSignOut = async () => {
-    const { error } = await supabase.auth.signOut()
-    if (error) {
-      console.error('Sign out error:', error)
-    } else {
+    try {
+      const { createClient } = await import('@/lib/supabase')
+      const supabase = createClient()
+      await supabase.auth.signOut()
       window.location.href = '/'
+    } catch (error) {
+      console.error('Error signing out:', error)
     }
   }
 
-  const downloadImage = (imageData: string, filename: string) => {
-    const link = document.createElement('a')
-    link.href = imageData
-    link.download = filename
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
+  // Convert file to base64
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.readAsDataURL(file)
+      reader.onload = () => {
+        const result = reader.result as string
+        // Remove data:image/jpeg;base64, prefix
+        const base64 = result.split(',')[1]
+        resolve(base64)
+      }
+      reader.onerror = error => reject(error)
+    })
   }
 
-  const openFullscreen = (imageData: string) => {
-    setIsFullscreen(true)
-    const newWindow = window.open('', '_blank')
-    if (newWindow) {
-      newWindow.document.write(`
-        <html>
-          <head><title>Portraitly - Full Size</title></head>
-          <body style="margin:0;padding:0;background:#000;display:flex;justify-content:center;align-items:center;min-height:100vh;">
-            <img src="${imageData}" style="max-width:100%;max-height:100%;object-fit:contain;" />
-          </body>
-        </html>
-      `)
+  // Get style-specific prompt for Gemini
+  const getStylePrompt = (style: string): string => {
+    const basePrompt = "Transform this casual selfie into a professional headshot. Keep the person's face and identity exactly the same, but change their clothing and background to be professional. "
+    
+    switch (style) {
+      case 'professional':
+        return basePrompt + "Dress them in a clean, modern business suit with a white dress shirt and professional tie. Use a clean, neutral background. Professional corporate headshot style."
+      
+      case 'finance':
+        return basePrompt + "Dress them in a conservative dark suit (navy or charcoal) with a white dress shirt and professional tie. Use a clean, neutral background. Conservative banking/finance professional style."
+      
+      case 'tech':
+        return basePrompt + "Dress them in a modern business casual outfit - blazer with dress shirt (no tie). Use a clean, modern background. Tech startup professional style."
+      
+      case 'creative':
+        return basePrompt + "Dress them in a stylish, modern business outfit - blazer with interesting shirt or top. Use a clean, artistic background. Creative professional style."
+      
+      case 'executive':
+        return basePrompt + "Dress them in a high-end executive suit with white dress shirt and tie. Use a clean, professional background. C-suite executive style."
+      
+      case 'editorial':
+        return basePrompt + "Dress them in a sophisticated business outfit. Use a clean, editorial-style background. Magazine-quality professional headshot."
+      
+      default:
+        return basePrompt + "Dress them in a professional business suit. Use a clean, neutral background."
     }
   }
 
-  // Show loading while initializing
-  if (isLoading) {
+  // Helper function to get clothing colors based on style
+  const getClothingColor = (style: string) => {
+    switch (style) {
+      case 'professional':
+        return '#2c3e50' // Dark blue
+      case 'finance':
+        return '#34495e' // Charcoal
+      case 'tech':
+        return '#3498db' // Blue
+      case 'creative':
+        return '#e74c3c' // Red
+      case 'executive':
+        return '#1a252f' // Very dark
+      case 'editorial':
+        return '#2c3e50' // Dark blue
+      default:
+        return '#2c3e50'
+    }
+  }
+
+  // Helper function to get tie colors
+  const getTieColor = (style: string) => {
+    switch (style) {
+      case 'professional':
+        return '#c0392b' // Red
+      case 'finance':
+        return '#7f8c8d' // Gray
+      case 'executive':
+        return '#059669' // Emerald
+      default:
+        return '#c0392b'
+    }
+  }
+
+  if (isLoadingAuth) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen bg-gradient-to-br from-magical-dark via-magical-deep to-magical-teal flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
+          <p className="text-white text-lg">Loading your demo...</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      {/* Sign Out Button */}
-      <div className="absolute top-4 right-4 z-10">
-        <button
-          onClick={handleSignOut}
-          className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition-colors flex items-center gap-2"
-        >
-          <LogOut className="h-4 w-4" />
-          Sign Out
-        </button>
-      </div>
-
-      <div className="container mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <Link href="/" className="inline-flex items-center text-blue-600 hover:text-blue-700 mb-4">
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Home
+    <div className="min-h-screen bg-gradient-to-br from-magical-dark via-magical-deep to-magical-teal">
+      {/* Header */}
+      <header className="px-6 py-6">
+        <div className="max-w-7xl mx-auto flex justify-between items-center">
+          <Link href="/" className="flex items-center space-x-3 text-white hover:text-gray-300 transition-colors">
+            <ArrowLeft className="h-6 w-6" />
+            <span className="text-lg font-medium">Back to Home</span>
           </Link>
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">
-            Welcome to Portraitly
-          </h1>
-          <p className="text-xl text-gray-600 mb-4">
-            {userData ? `Hi ${userData.email.split('@')[0]}!` : 'Create professional headshots with AI'}
-          </p>
-          <div className="inline-flex items-center px-4 py-2 bg-white rounded-full shadow-md">
-            <span className="text-sm font-medium text-gray-700">
-              {credits} credits remaining
-            </span>
+          
+          <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-2 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-lg">
+              <Sparkles className="h-4 w-4 text-yellow-400" />
+              <span className="text-sm font-medium text-white">
+                {credits} demo credits remaining
+              </span>
+            </div>
+            <button
+              onClick={handleSignOut}
+              className="bg-red-500/20 backdrop-blur-sm text-white px-4 py-2 rounded-lg hover:bg-red-500/30 transition-colors border border-red-500/30 flex items-center space-x-2"
+            >
+              <span>Sign Out</span>
+            </button>
           </div>
+        </div>
+      </header>
+
+      <main className="max-w-6xl mx-auto px-6 py-8">
+        {/* Demo Header */}
+        <div className="text-center mb-12">
+          <h1 className="text-6xl font-bold text-white mb-6">
+            Try Portraitly{' '}
+            <span className="bg-gradient-to-r from-accent-turquoise to-accent-emerald bg-clip-text text-transparent">
+              Demo
+            </span>
+          </h1>
+          <p className="text-xl text-gray-300 mb-8 max-w-2xl mx-auto">
+            Test our AI headshot generation without signing up. Upload a selfie and see the magic!
+          </p>
         </div>
 
         {/* Upload Section */}
-        <div className="max-w-2xl mx-auto mb-8">
-          <div className="bg-white rounded-2xl shadow-xl p-8">
-            <h2 className="text-2xl font-semibold text-gray-900 mb-6 text-center">
-              Upload Your Photo
-            </h2>
-            
-            <div className="space-y-4">
-              {/* File Upload */}
-              <div className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-blue-400 transition-colors">
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleFileChange}
-                  className="hidden"
-                  id="image-upload"
-                />
-                <label htmlFor="image-upload" className="cursor-pointer">
-                  <Camera className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-                  <p className="text-lg font-medium text-gray-900 mb-2">
-                    Click to upload a photo
-                  </p>
-                  <p className="text-sm text-gray-500">
-                    JPG, PNG up to 10MB
-                  </p>
-                </label>
-              </div>
-
-              {/* Mobile Upload */}
-              <button
-                onClick={() => setShowMobileUpload(true)}
-                className="w-full flex items-center justify-center gap-3 px-6 py-3 bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-100 transition-colors"
-              >
-                <Smartphone className="h-5 w-5" />
-                Upload from Phone
-              </button>
-            </div>
-
-            {/* Preview */}
-            {previewUrl && (
-              <div className="mt-6">
-                <h3 className="text-lg font-medium text-gray-900 mb-3">Preview</h3>
-                <div className="relative">
-                  <img
-                    src={previewUrl}
-                    alt="Selected"
-                    className="w-full h-64 object-cover rounded-xl"
-                  />
-                  <button
-                    onClick={() => {
-                      setSelectedFile(null)
-                      setPreviewUrl(null)
-                      setOriginalImageUrl(null)
-                      setGeneratedImage(null)
-                    }}
-                    className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
+        <div className="bg-white/10 backdrop-blur-sm rounded-3xl p-8 border border-white/20 mb-8">
+          <div className="grid lg:grid-cols-2 gap-8">
+            {/* Upload Area */}
+            <div className="border-2 border-dashed border-white/30 rounded-2xl p-8 text-center">
+              <input
+                id="file-upload"
+                type="file"
+                accept="image/*"
+                onChange={handleFileSelect}
+                className="hidden"
+              />
+              
+              <div className="space-y-6">
+                {previewUrl ? (
+                  <div className="space-y-4">
+                    <div className="aspect-square max-w-xs mx-auto rounded-2xl overflow-hidden shadow-2xl">
+                      <img
+                        src={previewUrl}
+                        alt="Uploaded selfie"
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <div>
+                      <p className="text-lg font-medium text-white mb-1">
+                        {selectedFile?.name}
+                      </p>
+                      <p className="text-sm text-gray-300">
+                        {((selectedFile?.size || 0) / 1024 / 1024).toFixed(2)} MB
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <div>
+                    <ImageIcon className="h-16 w-16 text-white/60 mx-auto mb-4" />
+                    <p className="text-xl font-medium text-white mb-2">
+                      Choose a selfie to upload
+                    </p>
+                    <p className="text-sm text-gray-300">
+                      PNG, JPG, or JPEG up to 10MB
+                    </p>
+                  </div>
+                )}
+                
+                <div className="flex gap-4 justify-center">
+                  <label
+                    htmlFor="file-upload"
+                    className="bg-white/20 backdrop-blur-sm text-white font-semibold px-6 py-3 rounded-xl hover:bg-white/30 transition-all duration-200 cursor-pointer border border-white/20"
                   >
-                    <X className="w-4 h-4" />
+                    {previewUrl ? 'Change Photo' : 'Choose File'}
+                  </label>
+                  
+                  <button
+                    onClick={() => setShowMobileUpload(true)}
+                    className="bg-gradient-to-r from-accent-turquoise to-accent-emerald text-white font-semibold px-6 py-3 rounded-xl hover:from-accent-turquoise/90 hover:to-accent-emerald/90 transition-all duration-200 flex items-center gap-2 shadow-lg"
+                  >
+                    <Smartphone className="h-4 w-4" />
+                    Upload from Phone
                   </button>
                 </div>
               </div>
-            )}
-          </div>
-        </div>
+            </div>
 
-        {/* Style Selection */}
-        {previewUrl && (
-          <div className="max-w-4xl mx-auto mb-8">
-            <div className="bg-white rounded-2xl shadow-xl p-8">
-              <h2 className="text-2xl font-semibold text-gray-900 mb-6 text-center">
-                Choose Your Style
-              </h2>
-              
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            {/* Style Selection */}
+            <div className="space-y-6">
+              <div>
+                <h3 className="text-2xl font-bold text-white mb-4">Choose Your Style</h3>
+                <p className="text-gray-300 mb-6">
+                  Select the professional look that best fits your industry
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
                 {STYLE_OPTIONS.map((style) => (
                   <button
                     key={style.id}
                     onClick={() => setSelectedStyle(style.id)}
-                    className={`p-4 rounded-xl border-2 transition-all duration-200 ${
+                    className={`p-4 rounded-xl border-2 transition-all duration-200 text-left backdrop-blur-sm ${
                       selectedStyle === style.id
-                        ? 'border-blue-500 bg-blue-50'
-                        : 'border-gray-200 hover:border-gray-300'
+                        ? 'border-accent-turquoise bg-accent-turquoise/20 shadow-lg'
+                        : 'border-white/20 bg-white/5 hover:bg-white/10 hover:border-white/30'
                     }`}
                   >
-                    <div className="text-center">
-                      <h3 className="font-semibold text-gray-900 mb-2">{style.name}</h3>
-                      <p className="text-sm text-gray-600">{style.description}</p>
-                    </div>
+                    <div className="font-semibold text-white mb-1">{style.name}</div>
+                    <div className="text-xs text-gray-300">{style.description}</div>
                   </button>
                 ))}
               </div>
+
+              <button
+                onClick={handleGenerate}
+                disabled={!selectedFile || credits === 0 || uploading}
+                className="w-full bg-gradient-to-r from-accent-turquoise to-accent-emerald text-white font-bold px-8 py-4 rounded-xl hover:from-accent-turquoise/90 hover:to-accent-emerald/90 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2 shadow-2xl"
+              >
+                {uploading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                    <span>Generating {STYLE_OPTIONS.find(s => s.id === selectedStyle)?.name} Headshot...</span>
+                  </>
+                ) : (
+                  <>
+                    <Camera className="h-5 w-5" />
+                    <span>Generate {STYLE_OPTIONS.find(s => s.id === selectedStyle)?.name} Headshot</span>
+                  </>
+                )}
+              </button>
+              
+              {credits === 0 && (
+                <p className="text-red-400 text-sm text-center">
+                  No demo credits remaining. Sign up for more!
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Generated Image Display */}
+        {generatedImage && (
+          <div id="generated-output" className="bg-white/10 backdrop-blur-sm rounded-3xl p-8 border border-white/20 mb-8">
+            <h2 className="text-3xl font-bold text-white mb-8 text-center">
+              Your {STYLE_OPTIONS.find(s => s.id === selectedStyle)?.name} Headshot
+            </h2>
+            
+            <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+              {/* Before */}
+              <div className="text-center">
+                <h3 className="text-lg font-semibold text-white mb-4">Before</h3>
+                <div className="aspect-square relative rounded-2xl overflow-hidden mb-4 shadow-2xl">
+                  <img
+                    src={originalImageUrl || ''}
+                    alt="Original selfie"
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      console.error('Original image load error:', e);
+                    }}
+                    onLoad={() => {
+                      console.log('Original image loaded successfully');
+                    }}
+                  />
+                </div>
+                <p className="text-gray-300 text-sm">Your original selfie</p>
+              </div>
+              
+              {/* After */}
+              <div className="text-center">
+                <h3 className="text-lg font-semibold text-white mb-4">After</h3>
+                <div className="aspect-square relative rounded-2xl overflow-hidden mb-4 shadow-2xl group">
+                  <img
+                    src={generatedImage}
+                    alt="Generated headshot"
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      console.error('Image load error:', e);
+                      e.currentTarget.style.display = 'none';
+                    }}
+                    onLoad={() => {
+                      console.log('Generated image loaded successfully');
+                    }}
+                  />
+                  {/* Overlay with expand button */}
+                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
+                    <button
+                      onClick={() => setIsFullscreen(true)}
+                      className="bg-white/20 backdrop-blur-sm text-white p-3 rounded-full hover:bg-white/30 transition-all duration-200"
+                    >
+                      <Maximize2 className="h-6 w-6" />
+                    </button>
+                  </div>
+                </div>
+                <p className="text-gray-300 text-sm">
+                  {STYLE_OPTIONS.find(s => s.id === selectedStyle)?.name} style
+                </p>
+              </div>
+            </div>
+            
+            <div className="text-center mt-8 space-y-4">
+              <div className="flex gap-4 justify-center">
+                <button
+                  onClick={handleGenerate}
+                  disabled={credits === 0 || uploading}
+                  className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-bold px-8 py-4 rounded-xl hover:from-blue-600 hover:to-cyan-600 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2 shadow-2xl"
+                >
+                  {uploading ? (
+                    <>
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                      <span>Regenerating...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="h-5 w-5" />
+                      <span>Regenerate</span>
+                    </>
+                  )}
+                </button>
+                
+                <a
+                  href={generatedImage}
+                  download={`portraitly-${selectedStyle}-headshot.jpg`}
+                  className="bg-gradient-to-r from-accent-turquoise to-accent-emerald text-white font-bold px-8 py-4 rounded-xl hover:from-accent-turquoise/90 hover:to-accent-emerald/90 transition-all duration-200 flex items-center space-x-2 shadow-2xl"
+                >
+                  <Download className="h-5 w-5" />
+                  <span>Download</span>
+                </a>
+              </div>
+              
+              {credits === 0 && (
+                <p className="text-red-400 text-sm">
+                  No demo credits remaining. Sign up for more!
+                </p>
+              )}
             </div>
           </div>
         )}
 
-        {/* Generate Button */}
-        {previewUrl && (
-          <div className="max-w-2xl mx-auto mb-8">
-            <button
-              onClick={handleGenerate}
-              disabled={uploading || credits <= 0}
-              className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-4 px-8 rounded-xl font-semibold text-lg hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center gap-3"
-            >
-              {uploading ? (
-                <>
-                  <Sparkles className="h-5 w-5 animate-pulse" />
-                  Generating...
-                </>
-              ) : (
-                <>
-                  <Sparkles className="h-5 w-5" />
-                  Generate Professional Headshot
-                </>
-              )}
-            </button>
-            {credits <= 0 && (
-              <p className="text-center text-red-500 mt-2">
-                No credits remaining. Please upgrade your plan.
-              </p>
-            )}
-          </div>
-        )}
-
-        {/* Results Section */}
-        {generatedImage && (
-          <div id="output-section" className="max-w-4xl mx-auto">
-            <div className="bg-white rounded-2xl shadow-xl p-8">
-              <h2 className="text-2xl font-semibold text-gray-900 mb-6 text-center">
-                Your Professional Headshot
-              </h2>
+        {/* Fullscreen Modal */}
+        {isFullscreen && generatedImage && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            {/* Backdrop */}
+            <div 
+              className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+              onClick={() => setIsFullscreen(false)}
+            />
+            
+            {/* Modal Content */}
+            <div className="relative z-10 max-w-4xl max-h-[90vh] w-full">
+              {/* Close Button */}
+              <button
+                onClick={() => setIsFullscreen(false)}
+                className="absolute -top-12 right-0 bg-white/20 backdrop-blur-sm text-white p-2 rounded-full hover:bg-white/30 transition-all duration-200 z-20"
+              >
+                <X className="h-6 w-6" />
+              </button>
               
-              <div className="grid md:grid-cols-2 gap-8">
-                {/* Original */}
-                <div>
-                  <h3 className="text-lg font-medium text-gray-900 mb-3">Original</h3>
-                  <div className="relative">
-                    <img
-                      src={originalImageUrl || ''}
-                      alt="Original"
-                      className="w-full aspect-[4/5] object-cover rounded-xl"
-                    />
-                    <button
-                      onClick={() => originalImageUrl && openFullscreen(originalImageUrl)}
-                      className="absolute top-2 right-2 bg-black bg-opacity-50 text-white rounded-full p-2 hover:bg-opacity-70"
-                    >
-                      <Maximize2 className="h-4 w-4" />
-                    </button>
-                  </div>
+              {/* Image */}
+              <div className="relative rounded-2xl overflow-hidden shadow-2xl">
+                <img
+                  src={generatedImage}
+                  alt="Generated headshot - Fullscreen"
+                  className="w-full h-auto max-h-[80vh] object-contain"
+                />
+                
+                {/* Download Button Overlay */}
+                <div className="absolute bottom-4 right-4">
+                  <a
+                    href={generatedImage}
+                    download={`portraitly-${selectedStyle}-headshot.jpg`}
+                    className="bg-gradient-to-r from-accent-turquoise to-accent-emerald text-white font-bold px-6 py-3 rounded-xl hover:from-accent-turquoise/90 hover:to-accent-emerald/90 transition-all duration-200 flex items-center space-x-2 shadow-2xl"
+                  >
+                    <Download className="h-5 w-5" />
+                    <span>Download</span>
+                  </a>
                 </div>
-
-                {/* Generated */}
-                <div>
-                  <h3 className="text-lg font-medium text-gray-900 mb-3">AI Generated</h3>
-                  <div className="relative">
-                    <img
-                      src={generatedImage}
-                      alt="Generated"
-                      className="w-full aspect-[4/5] object-cover rounded-xl"
-                    />
-                    <button
-                      onClick={() => openFullscreen(generatedImage)}
-                      className="absolute top-2 right-2 bg-black bg-opacity-50 text-white rounded-full p-2 hover:bg-opacity-70"
-                    >
-                      <Maximize2 className="h-4 w-4" />
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex flex-col sm:flex-row gap-4 mt-6">
-                <button
-                  onClick={() => downloadImage(generatedImage, 'portraitly-headshot.png')}
-                  className="flex-1 bg-green-600 text-white py-3 px-6 rounded-xl font-medium hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
-                >
-                  <Download className="h-4 w-4" />
-                  Download Headshot
-                </button>
-                <button
-                  onClick={() => setGeneratedImage(null)}
-                  className="flex-1 bg-blue-600 text-white py-3 px-6 rounded-xl font-medium hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
-                >
-                  <Sparkles className="h-4 w-4" />
-                  Try Different Style
-                </button>
               </div>
             </div>
           </div>
@@ -468,7 +588,8 @@ export default function Demo() {
           onClose={() => setShowMobileUpload(false)}
           sessionId={sessionId}
         />
-      </div>
+
+      </main>
     </div>
   )
 }
