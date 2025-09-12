@@ -1,13 +1,31 @@
+import { createServerClient } from '@supabase/ssr'
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { cookies } from 'next/headers'
 
-// Force dynamic rendering
 export const dynamic = 'force-dynamic'
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = createClient()
+    const cookieStore = cookies()
     
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          get(name: string) {
+            return cookieStore.get(name)?.value
+          },
+          set(name: string, value: string, options: any) {
+            cookieStore.set({ name, value, ...options })
+          },
+          remove(name: string, options: any) {
+            cookieStore.set({ name, value: '', ...options })
+          },
+        },
+      }
+    )
+
     // Get the current user
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     
@@ -17,14 +35,14 @@ export async function POST(request: NextRequest) {
         { status: 401 }
       )
     }
-    
+
     // Call the RPC function to ensure user exists
     const { data, error } = await supabase.rpc('ensure_user_exists')
     
     if (error) {
       console.error('RPC error:', error)
       return NextResponse.json(
-        { error: 'Failed to ensure user exists' },
+        { error: 'Failed to ensure user exists', details: error.message },
         { status: 500 }
       )
     }

@@ -1,32 +1,32 @@
 'use client'
 
 import { useState } from 'react'
-import { useAuth } from '@/contexts/AuthContext'
+import { createClient } from '@/lib/supabase'
 import { Camera, ArrowRight, CheckCircle, Star, Shield, Zap, Users, Download, Sparkles, Play, LogOut, Crown, Award, Globe } from 'lucide-react'
 import BackgroundPattern from './BackgroundPattern'
 import BeforeAfterSlider from './BeforeAfterSlider'
 
 export default function LandingPage() {
   const [loading, setLoading] = useState(false)
-  const { user, signIn, signOut } = useAuth()
+  const supabase = createClient()
 
   const handleGoogleSignIn = async () => {
     setLoading(true)
     try {
-      await signIn()
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`
+        }
+      })
+      
+      if (error) {
+        console.error('OAuth error:', error)
+        alert('Failed to sign in. Please try again.')
+      }
     } catch (error) {
       console.error('Sign in error:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleSignOut = async () => {
-    setLoading(true)
-    try {
-      await signOut()
-    } catch (error) {
-      console.error('Error signing out:', error)
+      alert('Failed to sign in. Please try again.')
     } finally {
       setLoading(false)
     }
@@ -56,48 +56,23 @@ export default function LandingPage() {
             </span>
           </div>
           <div className="flex items-center space-x-6">
-            <a href="/demo" className="text-white/80 hover:text-white transition-colors font-medium">
-              Demo
-            </a>
             <a href="/pricing" className="text-white/80 hover:text-white transition-colors font-medium">
               Pricing
             </a>
-            {user ? (
-              <>
-                <a href="/account" className="text-white/80 hover:text-white transition-colors font-medium">
-                  Account
-                </a>
-                <button
-                  onClick={handleSignOut}
-                  disabled={loading}
-                  className="bg-white/10 backdrop-blur-sm text-white font-semibold px-6 py-3 rounded-2xl hover:bg-white/20 transition-all duration-200 flex items-center space-x-2 border border-white/20"
-                >
-                  {loading ? (
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                  ) : (
-                    <>
-                      <LogOut className="h-4 w-4" />
-                      <span>Sign Out</span>
-                    </>
-                  )}
-                </button>
-              </>
-            ) : (
-              <button
-                onClick={handleGoogleSignIn}
-                disabled={loading}
-                className="bg-cta-gradient text-magical-deep font-bold px-8 py-4 rounded-2xl hover:shadow-premium transition-all duration-200 flex items-center space-x-2 shadow-magical"
-              >
-                {loading ? (
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-magical-deep"></div>
-                ) : (
-                  <>
-                    <span>Get Started</span>
-                    <ArrowRight className="h-5 w-5" />
-                  </>
-                )}
-              </button>
-            )}
+            <button
+              onClick={handleGoogleSignIn}
+              disabled={loading}
+              className="bg-cta-gradient text-magical-deep font-bold px-8 py-4 rounded-2xl hover:shadow-premium transition-all duration-200 flex items-center space-x-2 shadow-magical"
+            >
+              {loading ? (
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-magical-deep"></div>
+              ) : (
+                <>
+                  <span>Try for Free</span>
+                  <ArrowRight className="h-5 w-5" />
+                </>
+              )}
+            </button>
           </div>
         </div>
       </nav>
