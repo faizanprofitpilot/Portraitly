@@ -63,19 +63,18 @@ export default function Demo() {
   useEffect(() => {
     if (!sessionId) return
 
-    const pollForUploads = () => {
+    const pollForUploads = async () => {
       try {
-        const completedUploads = JSON.parse(
-          localStorage.getItem(`mobileUploads_${sessionId}`) || '[]'
-        )
+        console.log('📱 Polling server for mobile uploads, session:', sessionId)
         
-        console.log('📱 Polling for mobile uploads:', completedUploads)
-        console.log('📱 Session ID:', sessionId)
-        console.log('📱 localStorage key:', `mobileUploads_${sessionId}`)
+        const response = await fetch(`/api/mobile-upload-status?sessionId=${sessionId}`)
+        const data = await response.json()
         
-        if (completedUploads.length > 0) {
+        console.log('📱 Server response:', data)
+        
+        if (data.uploads && data.uploads.length > 0) {
           // Process the first uploaded file
-          const uploadedFile = completedUploads[0]
+          const uploadedFile = data.uploads[0]
           const imageUrl = `/uploads/${uploadedFile.filename}`
           
           console.log('📸 Processing mobile upload:', uploadedFile, 'URL:', imageUrl)
@@ -94,43 +93,13 @@ export default function Demo() {
               setSelectedFile(file)
               setPreviewUrl(imageUrl)
               setOriginalImageUrl(imageUrl)
-              
-              // Clear processed uploads
-              localStorage.removeItem(`mobileUploads_${sessionId}`)
             })
             .catch(error => {
               console.error('❌ Error loading mobile upload:', error)
-              // Try alternative approach - create File from localStorage data
-              try {
-                // Get the file data from localStorage if available
-                const uploadData = localStorage.getItem(`mobileUpload_${uploadedFile.filename}`)
-                if (uploadData) {
-                  const base64Data = JSON.parse(uploadData)
-                  const byteCharacters = atob(base64Data.split(',')[1])
-                  const byteNumbers = new Array(byteCharacters.length)
-                  for (let i = 0; i < byteCharacters.length; i++) {
-                    byteNumbers[i] = byteCharacters.charCodeAt(i)
-                  }
-                  const byteArray = new Uint8Array(byteNumbers)
-                  const blob = new Blob([byteArray], { type: 'image/jpeg' })
-                  const file = new File([blob], uploadedFile.originalName, { type: 'image/jpeg' })
-                  
-                  setSelectedFile(file)
-                  setPreviewUrl(URL.createObjectURL(blob))
-                  setOriginalImageUrl(URL.createObjectURL(blob))
-                  
-                  console.log('✅ Mobile upload processed from localStorage:', file.name)
-                }
-              } catch (fallbackError) {
-                console.error('❌ Fallback also failed:', fallbackError)
-              }
-              
-              // Remove failed upload from localStorage to prevent infinite retry
-              localStorage.removeItem(`mobileUploads_${sessionId}`)
             })
         }
       } catch (error) {
-        console.error('❌ Error polling for uploads:', error)
+        console.error('❌ Error polling server for uploads:', error)
       }
     }
 

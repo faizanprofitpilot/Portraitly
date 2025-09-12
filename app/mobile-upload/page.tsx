@@ -46,7 +46,8 @@ export default function MobileUploadPage() {
         formData.append('file', file);
         formData.append('sessionId', sessionId);
 
-        const response = await fetch('/api/upload', {
+        const baseUrl = window.location.origin;
+        const response = await fetch(`${baseUrl}/api/upload`, {
           method: 'POST',
           body: formData,
         });
@@ -56,28 +57,26 @@ export default function MobileUploadPage() {
           console.log('📱 Mobile upload successful:', result);
           setUploadedFiles(prev => [...prev, result.filename]);
           
-          // Store in localStorage for polling
-          const completedUploads = JSON.parse(
-            localStorage.getItem(`mobileUploads_${sessionId}`) || '[]'
-          );
-          const uploadData = {
-            filename: result.filename,
-            timestamp: Date.now(),
-            originalName: file.name
-          };
-          completedUploads.push(uploadData);
-          localStorage.setItem(`mobileUploads_${sessionId}`, JSON.stringify(completedUploads));
+          // Store upload status on server for cross-device polling
+          const baseUrl = window.location.origin;
+          const statusResponse = await fetch(`${baseUrl}/api/mobile-upload-status`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              sessionId,
+              filename: result.filename,
+              originalName: file.name,
+              timestamp: Date.now()
+            })
+          });
           
-          console.log('📱 Stored in localStorage:', uploadData);
-          console.log('📱 All uploads for session:', completedUploads);
-          
-          // Also store file data as base64 for fallback
-          const reader = new FileReader();
-          reader.onload = () => {
-            localStorage.setItem(`mobileUpload_${result.filename}`, JSON.stringify(reader.result));
-            console.log('📱 Stored base64 backup for:', result.filename);
-          };
-          reader.readAsDataURL(file);
+          if (statusResponse.ok) {
+            console.log('📱 Upload status stored on server');
+          } else {
+            console.error('📱 Failed to store upload status');
+          }
         } else {
           console.error('📱 Upload failed:', response.status, response.statusText);
         }
