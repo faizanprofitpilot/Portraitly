@@ -59,23 +59,30 @@ export default function MobileUploadPage() {
           
           // Store upload status on server for cross-device polling
           const baseUrl = window.location.origin;
+          const statusData = {
+            sessionId,
+            filename: result.filename,
+            originalName: file.name,
+            timestamp: Date.now()
+          };
+          
+          console.log('📱 Attempting to store upload status:', statusData);
+          console.log('📱 Sending to URL:', `${baseUrl}/api/mobile-upload-status`);
+          
           const statusResponse = await fetch(`${baseUrl}/api/mobile-upload-status`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
             },
-            body: JSON.stringify({
-              sessionId,
-              filename: result.filename,
-              originalName: file.name,
-              timestamp: Date.now()
-            })
+            body: JSON.stringify(statusData)
           });
           
           if (statusResponse.ok) {
-            console.log('📱 Upload status stored on server');
+            const statusResult = await statusResponse.json();
+            console.log('📱 Upload status stored on server successfully:', statusResult);
           } else {
-            console.error('📱 Failed to store upload status');
+            const errorText = await statusResponse.text();
+            console.error('📱 Failed to store upload status:', statusResponse.status, errorText);
           }
         } else {
           console.error('📱 Upload failed:', response.status, response.statusText);
