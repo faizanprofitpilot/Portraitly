@@ -1,26 +1,34 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { createClient } from '@/lib/supabase'
-import { Camera, Upload, Loader2, Download, RotateCcw, Maximize2, Smartphone, LogOut } from 'lucide-react'
+import { Camera, Download, ArrowLeft, Sparkles, Image as ImageIcon, CheckCircle, X, Maximize2, Smartphone, LogOut } from 'lucide-react'
+import Link from 'next/link'
 import MobileUploadModal from './MobileUploadModal'
+import { createClient } from '@/lib/supabase'
 
-interface UserData {
-  id: string
-  email: string
-  plan: string
-  credits_remaining: number
-}
+const STYLE_OPTIONS = [
+  { id: 'professional', name: 'Professional', description: 'Clean, corporate look perfect for LinkedIn' },
+  { id: 'finance', name: 'Finance', description: 'Conservative, trustworthy appearance for banking' },
+  { id: 'tech', name: 'Tech', description: 'Modern, innovative look for startups' },
+  { id: 'creative', name: 'Creative', description: 'Artistic, expressive style for designers' },
+  { id: 'executive', name: 'Executive', description: 'Authoritative, leadership presence' },
+  { id: 'editorial', name: 'Editorial', description: 'Magazine-quality, editorial style' }
+]
 
 export default function Demo() {
-  const [user, setUser] = useState<any>(null)
-  const [userData, setUserData] = useState<UserData | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
-  const [selectedImage, setSelectedImage] = useState<string | null>(null)
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [selectedStyle, setSelectedStyle] = useState('professional')
+  const [uploading, setUploading] = useState(false)
   const [generatedImage, setGeneratedImage] = useState<string | null>(null)
-  const [isGenerating, setIsGenerating] = useState(false)
+  const [credits, setCredits] = useState(0)
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+  const [originalImageUrl, setOriginalImageUrl] = useState<string | null>(null)
+  const [isFullscreen, setIsFullscreen] = useState(false)
   const [showMobileUpload, setShowMobileUpload] = useState(false)
   const [sessionId, setSessionId] = useState<string>('')
+  const [user, setUser] = useState<any>(null)
+  const [userData, setUserData] = useState<any>(null)
+  const [isLoading, setIsLoading] = useState(true)
   
   const supabase = createClient()
 
@@ -57,6 +65,7 @@ export default function Demo() {
         
         if (ensureData.success) {
           setUserData(ensureData.user)
+          setCredits(ensureData.user.credits_remaining)
         } else {
           console.error('User ensure failed:', ensureData.error)
           window.location.href = '/'
@@ -75,8 +84,8 @@ export default function Demo() {
 
   // Generate session ID on component mount
   useEffect(() => {
-    const id = Math.random().toString(36).substring(2, 15)
-    setSessionId(id)
+    const newSessionId = `upload_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+    setSessionId(newSessionId)
   }, [])
 
   // Poll for mobile uploads
@@ -84,19 +93,34 @@ export default function Demo() {
     if (!sessionId) return
 
     const pollForUploads = () => {
-      const uploads = localStorage.getItem(`mobile-uploads-${sessionId}`)
-      if (uploads) {
-        try {
-          const files = JSON.parse(uploads)
-          if (files.length > 0) {
-            const latestFile = files[files.length - 1]
-            setSelectedImage(latestFile.dataUrl)
-            setShowMobileUpload(false)
-            localStorage.removeItem(`mobile-uploads-${sessionId}`)
-          }
-        } catch (error) {
-          console.error('Error parsing mobile uploads:', error)
+      try {
+        const completedUploads = JSON.parse(
+          localStorage.getItem(`mobileUploads_${sessionId}`) || '[]'
+        )
+        
+        if (completedUploads.length > 0) {
+          // Process the first uploaded file
+          const uploadedFile = completedUploads[0]
+          const imageUrl = `/uploads/${uploadedFile.filename}`
+          
+          // Create a File object from the uploaded image
+          fetch(imageUrl)
+            .then(response => response.blob())
+            .then(blob => {
+              const file = new File([blob], uploadedFile.originalName, { type: 'image/jpeg' })
+              setSelectedFile(file)
+              setPreviewUrl(imageUrl)
+              setOriginalImageUrl(imageUrl)
+              
+              // Clear processed uploads
+              localStorage.removeItem(`mobileUploads_${sessionId}`)
+            })
+            .catch(error => {
+              console.error('Error loading mobile upload:', error)
+            })
         }
+      } catch (error) {
+        console.error('Error polling for uploads:', error)
       }
     }
 
@@ -104,67 +128,70 @@ export default function Demo() {
     return () => clearInterval(interval)
   }, [sessionId])
 
-  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     if (file) {
-      const reader = new FileReader()
-      reader.onload = (e) => {
-        setSelectedImage(e.target?.result as string)
-      }
-      reader.readAsDataURL(file)
+      setSelectedFile(file)
+      setPreviewUrl(URL.createObjectURL(file))
+      setOriginalImageUrl(URL.createObjectURL(file))
+      setGeneratedImage(null) // Clear previous generation
     }
   }
 
   const handleGenerate = async () => {
-    if (!selectedImage || !userData || userData.credits_remaining <= 0) return
+    if (!selectedFile || !previewUrl) return
 
-    setIsGenerating(true)
+    setUploading(true)
     try {
-      const response = await fetch('/api/generate-headshot', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          image: selectedImage,
-          isDemo: false
-        }),
-      })
+      // Convert file to base64
+      const reader = new FileReader()
+      reader.onload = async (e) => {
+        const base64Image = e.target?.result as string
+        
+        const response = await fetch('/api/generate-headshot', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            image: base64Image,
+            style: selectedStyle,
+            isDemo: false
+          }),
+        })
 
-      if (!response.ok) {
-        throw new Error('Failed to generate headshot')
-      }
-
-      const data = await response.json()
-      setGeneratedImage(data.image)
-      
-      // Refresh user data to get updated credits
-      const userResponse = await fetch('/api/get-user')
-      if (userResponse.ok) {
-        const userDataResponse = await userResponse.json()
-        if (userDataResponse.success) {
-          setUserData(userDataResponse.user)
+        if (!response.ok) {
+          throw new Error('Failed to generate headshot')
         }
-      }
 
-      // Auto-scroll to results
-      setTimeout(() => {
-        const outputSection = document.getElementById('output-section')
-        if (outputSection) {
-          outputSection.scrollIntoView({ behavior: 'smooth', block: 'start' })
+        const data = await response.json()
+        setGeneratedImage(data.image)
+        
+        // Refresh user data to get updated credits
+        const userResponse = await fetch('/api/get-user')
+        if (userResponse.ok) {
+          const userDataResponse = await userResponse.json()
+          if (userDataResponse.success) {
+            setUserData(userDataResponse.user)
+            setCredits(userDataResponse.user.credits_remaining)
+          }
         }
-      }, 500)
+
+        // Auto-scroll to results
+        setTimeout(() => {
+          const outputSection = document.getElementById('output-section')
+          if (outputSection) {
+            outputSection.scrollIntoView({ behavior: 'smooth', block: 'start' })
+          }
+        }, 500)
+      }
+      reader.readAsDataURL(selectedFile)
     } catch (error) {
       console.error('Error generating headshot:', error)
       alert('Failed to generate headshot. Please try again.')
     } finally {
-      setIsGenerating(false)
+      setUploading(false)
     }
-  }
-
-  const handleRegenerate = () => {
-    setGeneratedImage(null)
-    handleGenerate()
   }
 
   const handleSignOut = async () => {
@@ -186,6 +213,7 @@ export default function Demo() {
   }
 
   const openFullscreen = (imageData: string) => {
+    setIsFullscreen(true)
     const newWindow = window.open('', '_blank')
     if (newWindow) {
       newWindow.document.write(`
@@ -214,7 +242,7 @@ export default function Demo() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
       {/* Sign Out Button */}
-      <div className="absolute top-4 right-4">
+      <div className="absolute top-4 right-4 z-10">
         <button
           onClick={handleSignOut}
           className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition-colors flex items-center gap-2"
@@ -223,10 +251,14 @@ export default function Demo() {
           Sign Out
         </button>
       </div>
-      
+
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="text-center mb-8">
+          <Link href="/" className="inline-flex items-center text-blue-600 hover:text-blue-700 mb-4">
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Home
+          </Link>
           <h1 className="text-4xl font-bold text-gray-900 mb-2">
             Welcome to Portraitly
           </h1>
@@ -235,7 +267,7 @@ export default function Demo() {
           </p>
           <div className="inline-flex items-center px-4 py-2 bg-white rounded-full shadow-md">
             <span className="text-sm font-medium text-gray-700">
-              {userData?.credits_remaining || 0} credits remaining
+              {credits} credits remaining
             </span>
           </div>
         </div>
@@ -253,7 +285,7 @@ export default function Demo() {
                 <input
                   type="file"
                   accept="image/*"
-                  onChange={handleImageUpload}
+                  onChange={handleFileChange}
                   className="hidden"
                   id="image-upload"
                 />
@@ -279,22 +311,25 @@ export default function Demo() {
             </div>
 
             {/* Preview */}
-            {selectedImage && (
+            {previewUrl && (
               <div className="mt-6">
                 <h3 className="text-lg font-medium text-gray-900 mb-3">Preview</h3>
                 <div className="relative">
                   <img
-                    src={selectedImage}
+                    src={previewUrl}
                     alt="Selected"
                     className="w-full h-64 object-cover rounded-xl"
                   />
                   <button
-                    onClick={() => setSelectedImage(null)}
+                    onClick={() => {
+                      setSelectedFile(null)
+                      setPreviewUrl(null)
+                      setOriginalImageUrl(null)
+                      setGeneratedImage(null)
+                    }}
                     className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
                   >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
+                    <X className="w-4 h-4" />
                   </button>
                 </div>
               </div>
@@ -302,27 +337,57 @@ export default function Demo() {
           </div>
         </div>
 
+        {/* Style Selection */}
+        {previewUrl && (
+          <div className="max-w-4xl mx-auto mb-8">
+            <div className="bg-white rounded-2xl shadow-xl p-8">
+              <h2 className="text-2xl font-semibold text-gray-900 mb-6 text-center">
+                Choose Your Style
+              </h2>
+              
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                {STYLE_OPTIONS.map((style) => (
+                  <button
+                    key={style.id}
+                    onClick={() => setSelectedStyle(style.id)}
+                    className={`p-4 rounded-xl border-2 transition-all duration-200 ${
+                      selectedStyle === style.id
+                        ? 'border-blue-500 bg-blue-50'
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                  >
+                    <div className="text-center">
+                      <h3 className="font-semibold text-gray-900 mb-2">{style.name}</h3>
+                      <p className="text-sm text-gray-600">{style.description}</p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Generate Button */}
-        {selectedImage && (
+        {previewUrl && (
           <div className="max-w-2xl mx-auto mb-8">
             <button
               onClick={handleGenerate}
-              disabled={isGenerating || (userData?.credits_remaining || 0) <= 0}
+              disabled={uploading || credits <= 0}
               className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-4 px-8 rounded-xl font-semibold text-lg hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center gap-3"
             >
-              {isGenerating ? (
+              {uploading ? (
                 <>
-                  <Loader2 className="h-5 w-5 animate-spin" />
+                  <Sparkles className="h-5 w-5 animate-pulse" />
                   Generating...
                 </>
               ) : (
                 <>
-                  <Upload className="h-5 w-5" />
+                  <Sparkles className="h-5 w-5" />
                   Generate Professional Headshot
                 </>
               )}
             </button>
-            {(userData?.credits_remaining || 0) <= 0 && (
+            {credits <= 0 && (
               <p className="text-center text-red-500 mt-2">
                 No credits remaining. Please upgrade your plan.
               </p>
@@ -344,12 +409,12 @@ export default function Demo() {
                   <h3 className="text-lg font-medium text-gray-900 mb-3">Original</h3>
                   <div className="relative">
                     <img
-                      src={selectedImage || ''}
+                      src={originalImageUrl || ''}
                       alt="Original"
                       className="w-full aspect-[4/5] object-cover rounded-xl"
                     />
                     <button
-                      onClick={() => selectedImage && openFullscreen(selectedImage)}
+                      onClick={() => originalImageUrl && openFullscreen(originalImageUrl)}
                       className="absolute top-2 right-2 bg-black bg-opacity-50 text-white rounded-full p-2 hover:bg-opacity-70"
                     >
                       <Maximize2 className="h-4 w-4" />
@@ -386,12 +451,11 @@ export default function Demo() {
                   Download Headshot
                 </button>
                 <button
-                  onClick={handleRegenerate}
-                  disabled={isGenerating || (userData?.credits_remaining || 0) <= 0}
-                  className="flex-1 bg-blue-600 text-white py-3 px-6 rounded-xl font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+                  onClick={() => setGeneratedImage(null)}
+                  className="flex-1 bg-blue-600 text-white py-3 px-6 rounded-xl font-medium hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
                 >
-                  <RotateCcw className="h-4 w-4" />
-                  Regenerate
+                  <Sparkles className="h-4 w-4" />
+                  Try Different Style
                 </button>
               </div>
             </div>
