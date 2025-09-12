@@ -36,35 +36,31 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Call the RPC function to ensure user exists
-    const { data, error } = await supabase.rpc('ensure_user_exists')
+    // Get user data from database (user should be created by trigger)
+    const { data: userData, error: dbError } = await supabase
+      .from('users')
+      .select('id, email, plan, credits_remaining')
+      .eq('auth_user_id', user.id)
+      .single()
     
-    if (error) {
-      console.error('RPC error:', error)
+    if (dbError) {
+      console.error('Database error:', dbError)
       return NextResponse.json(
-        { error: 'Failed to ensure user exists', details: error.message },
+        { error: 'Failed to fetch user data', details: dbError.message },
         { status: 500 }
       )
     }
     
-    if (!data) {
+    if (!userData) {
       return NextResponse.json(
-        { error: 'No user data returned' },
-        { status: 500 }
+        { error: 'User not found in database' },
+        { status: 404 }
       )
     }
-    
-    // Handle both array and object responses
-    const userData = Array.isArray(data) ? data[0] : data
     
     return NextResponse.json({
       success: true,
-      user: {
-        id: userData.user_id,
-        email: userData.email,
-        plan: userData.plan,
-        credits_remaining: userData.credits_remaining
-      }
+      user: userData
     })
     
   } catch (error) {
