@@ -76,42 +76,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const ensureUserExists = async (user: User) => {
     try {
-      // Check if user exists in database
-      const { data: existingUser, error: fetchError } = await supabase
-        .from('users')
-        .select('credits_remaining')
-        .eq('auth_user_id', user.id)
-        .single()
+      // Use the secure API route to ensure user exists
+      const response = await fetch('/api/user/ensure', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
 
-      if (fetchError && fetchError.code !== 'PGRST116') {
-        // PGRST116 is "not found" - that's expected for new users
-        console.error('Error checking user:', fetchError)
+      if (!response.ok) {
+        const errorData = await response.json()
+        console.error('API error:', errorData)
         setCredits(0)
         return
       }
 
-      if (existingUser) {
-        // User exists, set their credits
-        setCredits(existingUser.credits_remaining)
+      const data = await response.json()
+      
+      if (data.success && data.user) {
+        console.log('User ensured:', data.user.email, 'Credits:', data.user.credits_remaining)
+        setCredits(data.user.credits_remaining)
       } else {
-        // User doesn't exist, create them
-        console.log('Creating new user:', user.email)
-        const { error: insertError } = await supabase
-          .from('users')
-          .insert({
-            auth_user_id: user.id,
-            email: user.email!,
-            plan: 'free',
-            credits_remaining: 10
-          })
-
-        if (insertError) {
-          console.error('Error creating user:', insertError)
-          setCredits(0)
-        } else {
-          console.log('User created successfully')
-          setCredits(10)
-        }
+        console.error('Unexpected response:', data)
+        setCredits(0)
       }
     } catch (error) {
       console.error('Error in ensureUserExists:', error)
