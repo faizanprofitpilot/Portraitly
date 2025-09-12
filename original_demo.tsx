@@ -1,77 +1,17 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { createClient } from '@/lib/supabase'
-import { Camera, Upload, Loader2, Download, RotateCcw, Maximize2, Smartphone, LogOut } from 'lucide-react'
+import { Camera, Upload, Loader2, Download, RotateCcw, Maximize2, Smartphone } from 'lucide-react'
+import { useAuth } from '@/contexts/AuthContext'
 import MobileUploadModal from './MobileUploadModal'
 
-interface UserData {
-  id: string
-  email: string
-  plan: string
-  credits_remaining: number
-}
-
 export default function Demo() {
-  const [user, setUser] = useState<any>(null)
-  const [userData, setUserData] = useState<UserData | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
+  const { user, credits, refreshCredits } = useAuth()
   const [selectedImage, setSelectedImage] = useState<string | null>(null)
   const [generatedImage, setGeneratedImage] = useState<string | null>(null)
   const [isGenerating, setIsGenerating] = useState(false)
   const [showMobileUpload, setShowMobileUpload] = useState(false)
   const [sessionId, setSessionId] = useState<string>('')
-  
-  const supabase = createClient()
-
-  // Initialize auth and user data
-  useEffect(() => {
-    const initializeAuth = async () => {
-      try {
-        // Get current user
-        const { data: { user }, error: authError } = await supabase.auth.getUser()
-        
-        if (authError || !user) {
-          console.error('Auth error:', authError)
-          window.location.href = '/'
-          return
-        }
-
-        setUser(user)
-
-        // Ensure user exists in database
-        const ensureResponse = await fetch('/api/ensure-user', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        })
-
-        if (!ensureResponse.ok) {
-          console.error('Failed to ensure user exists')
-          window.location.href = '/'
-          return
-        }
-
-        const ensureData = await ensureResponse.json()
-        
-        if (ensureData.success) {
-          setUserData(ensureData.user)
-        } else {
-          console.error('User ensure failed:', ensureData.error)
-          window.location.href = '/'
-          return
-        }
-
-        setIsLoading(false)
-      } catch (error) {
-        console.error('Initialization error:', error)
-        window.location.href = '/'
-      }
-    }
-
-    initializeAuth()
-  }, [])
 
   // Generate session ID on component mount
   useEffect(() => {
@@ -92,6 +32,7 @@ export default function Demo() {
             const latestFile = files[files.length - 1]
             setSelectedImage(latestFile.dataUrl)
             setShowMobileUpload(false)
+            // Clear the uploads after using them
             localStorage.removeItem(`mobile-uploads-${sessionId}`)
           }
         } catch (error) {
@@ -116,7 +57,7 @@ export default function Demo() {
   }
 
   const handleGenerate = async () => {
-    if (!selectedImage || !userData || userData.credits_remaining <= 0) return
+    if (!selectedImage || credits <= 0) return
 
     setIsGenerating(true)
     try {
@@ -138,16 +79,10 @@ export default function Demo() {
       const data = await response.json()
       setGeneratedImage(data.image)
       
-      // Refresh user data to get updated credits
-      const userResponse = await fetch('/api/get-user')
-      if (userResponse.ok) {
-        const userDataResponse = await userResponse.json()
-        if (userDataResponse.success) {
-          setUserData(userDataResponse.user)
-        }
-      }
+      // Refresh credits after successful generation
+      await refreshCredits()
 
-      // Auto-scroll to results
+      // Auto-scroll to results after generation
       setTimeout(() => {
         const outputSection = document.getElementById('output-section')
         if (outputSection) {
@@ -165,15 +100,6 @@ export default function Demo() {
   const handleRegenerate = () => {
     setGeneratedImage(null)
     handleGenerate()
-  }
-
-  const handleSignOut = async () => {
-    const { error } = await supabase.auth.signOut()
-    if (error) {
-      console.error('Sign out error:', error)
-    } else {
-      window.location.href = '/'
-    }
   }
 
   const downloadImage = (imageData: string, filename: string) => {
@@ -199,31 +125,8 @@ export default function Demo() {
     }
   }
 
-  // Show loading while initializing
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading...</p>
-        </div>
-      </div>
-    )
-  }
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      {/* Sign Out Button */}
-      <div className="absolute top-4 right-4">
-        <button
-          onClick={handleSignOut}
-          className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition-colors flex items-center gap-2"
-        >
-          <LogOut className="h-4 w-4" />
-          Sign Out
-        </button>
-      </div>
-      
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="text-center mb-8">
@@ -231,11 +134,11 @@ export default function Demo() {
             Welcome to Portraitly
           </h1>
           <p className="text-xl text-gray-600 mb-4">
-            {userData ? `Hi ${userData.email.split('@')[0]}!` : 'Create professional headshots with AI'}
+            {user ? `Hi ${user.email?.split('@')[0]}!` : 'Create professional headshots with AI'}
           </p>
           <div className="inline-flex items-center px-4 py-2 bg-white rounded-full shadow-md">
             <span className="text-sm font-medium text-gray-700">
-              {userData?.credits_remaining || 0} credits remaining
+              {credits} credits remaining
             </span>
           </div>
         </div>
@@ -307,7 +210,7 @@ export default function Demo() {
           <div className="max-w-2xl mx-auto mb-8">
             <button
               onClick={handleGenerate}
-              disabled={isGenerating || (userData?.credits_remaining || 0) <= 0}
+              disabled={isGenerating || credits <= 0}
               className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-4 px-8 rounded-xl font-semibold text-lg hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center gap-3"
             >
               {isGenerating ? (
@@ -322,7 +225,7 @@ export default function Demo() {
                 </>
               )}
             </button>
-            {(userData?.credits_remaining || 0) <= 0 && (
+            {credits <= 0 && (
               <p className="text-center text-red-500 mt-2">
                 No credits remaining. Please upgrade your plan.
               </p>
@@ -344,7 +247,7 @@ export default function Demo() {
                   <h3 className="text-lg font-medium text-gray-900 mb-3">Original</h3>
                   <div className="relative">
                     <img
-                      src={selectedImage || ''}
+                      src={selectedImage}
                       alt="Original"
                       className="w-full aspect-[4/5] object-cover rounded-xl"
                     />
@@ -367,7 +270,7 @@ export default function Demo() {
                       className="w-full aspect-[4/5] object-cover rounded-xl"
                     />
                     <button
-                      onClick={() => openFullscreen(generatedImage)}
+                      onClick={() => generatedImage && openFullscreen(generatedImage)}
                       className="absolute top-2 right-2 bg-black bg-opacity-50 text-white rounded-full p-2 hover:bg-opacity-70"
                     >
                       <Maximize2 className="h-4 w-4" />
@@ -387,7 +290,7 @@ export default function Demo() {
                 </button>
                 <button
                   onClick={handleRegenerate}
-                  disabled={isGenerating || (userData?.credits_remaining || 0) <= 0}
+                  disabled={isGenerating || credits <= 0}
                   className="flex-1 bg-blue-600 text-white py-3 px-6 rounded-xl font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
                 >
                   <RotateCcw className="h-4 w-4" />
