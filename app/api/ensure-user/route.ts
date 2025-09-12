@@ -47,14 +47,15 @@ export async function POST(request: NextRequest) {
       )
     }
     
-    if (!data || data.length === 0) {
+    if (!data) {
       return NextResponse.json(
         { error: 'No user data returned' },
         { status: 500 }
       )
     }
     
-    const userData = data[0]
+    // Handle both array and object responses
+    const userData = Array.isArray(data) ? data[0] : data
     
     return NextResponse.json({
       success: true,
