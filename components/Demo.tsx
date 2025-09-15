@@ -72,10 +72,10 @@ export default function Demo() {
         
         console.log('📱 Server response:', data)
         
-        if (data.success && data.uploads && data.uploads.length > 0) {
+        if (data.uploads && data.uploads.length > 0) {
           // Process the first uploaded file
           const uploadedFile = data.uploads[0]
-          const imageUrl = uploadedFile.file_url
+          const imageUrl = `/uploads/${uploadedFile.filename}`
           
           console.log('📸 Processing mobile upload:', uploadedFile, 'URL:', imageUrl)
           
@@ -88,18 +88,11 @@ export default function Demo() {
               return response.blob()
             })
             .then(blob => {
-              const file = new File([blob], uploadedFile.original_name, { type: uploadedFile.file_type })
+              const file = new File([blob], uploadedFile.originalName, { type: 'image/jpeg' })
               console.log('✅ Mobile upload processed successfully:', file.name)
               setSelectedFile(file)
               setPreviewUrl(imageUrl)
               setOriginalImageUrl(imageUrl)
-              
-              // Clean up the uploaded files after processing
-              fetch(`/api/mobile-uploads?sessionId=${sessionId}`, {
-                method: 'DELETE'
-              }).catch(error => {
-                console.error('Failed to clean up uploads:', error)
-              })
             })
             .catch(error => {
               console.error('❌ Error loading mobile upload:', error)

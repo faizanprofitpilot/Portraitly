@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
+import { writeFile, mkdir } from 'fs/promises';
+import { join } from 'path';
+import { existsSync } from 'fs';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,19 +24,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'File must be an image' }, { status: 400 });
     }
 
-    // Initialize Supabase client
-    const cookieStore = cookies();
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          get(name: string) { return cookieStore.get(name)?.value; },
-          set(name: string, value: string, options: any) { cookieStore.set({ name, value, ...options }); },
-          remove(name: string, options: any) { cookieStore.set({ name, value: '', ...options }); },
-        },
-      }
-    );
+    // Create uploads directory if it doesn't exist
+    const uploadsDir = join(process.cwd(), 'public', 'uploads');
+    if (!existsSync(uploadsDir)) {
+      await mkdir(uploadsDir, { recursive: true });
+    }
 
     // Generate unique filename
     const timestamp = Date.now();
@@ -43,42 +36,16 @@ export async function POST(request: NextRequest) {
     const fileExtension = file.name.split('.').pop() || 'jpg';
     const filename = `mobile_${sessionId}_${timestamp}_${randomString}.${fileExtension}`;
 
-    // Upload to Supabase Storage
-    const { data: uploadData, error: uploadError } = await supabase.storage
-      .from('mobile-uploads')
-      .upload(filename, file, {
-        contentType: file.type,
-        upsert: false
-      });
+    // Convert file to buffer
+    const bytes = await file.arrayBuffer();
+    const buffer = Buffer.from(bytes);
 
-    if (uploadError) {
-      console.error('Storage upload error:', uploadError);
-      return NextResponse.json({ error: 'Failed to upload file' }, { status: 500 });
-    }
-
-    // Store metadata in database with filename (not URL)
-    const { data: dbData, error: dbError } = await supabase
-      .from('mobile_uploads')
-      .insert({
-        session_id: sessionId,
-        file_url: filename, // Store filename, not public URL
-        original_name: file.name,
-        file_size: file.size,
-        file_type: file.type
-      })
-      .select()
-      .single();
-
-    if (dbError) {
-      console.error('Database insert error:', dbError);
-      // Clean up uploaded file if database insert fails
-      await supabase.storage.from('mobile-uploads').remove([filename]);
-      return NextResponse.json({ error: 'Failed to store file metadata' }, { status: 500 });
-    }
+    // Save file
+    const filepath = join(uploadsDir, filename);
+    await writeFile(filepath, buffer);
 
     return NextResponse.json({
       success: true,
-      id: dbData.id,
       filename: filename,
       originalName: file.name,
       size: file.size,
