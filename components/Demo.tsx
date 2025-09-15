@@ -15,6 +15,7 @@ const STYLE_OPTIONS = [
 ]
 
 export default function Demo() {
+  console.log('🎯 Demo component rendering')
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [selectedStyle, setSelectedStyle] = useState('professional')
   const [uploading, setUploading] = useState(false)
