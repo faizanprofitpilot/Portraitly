@@ -45,9 +45,9 @@ export default function Demo() {
         const response = await fetch('/api/get-user')
         const data = await response.json()
         
-        if (data.user && data.credits !== undefined) {
+        if (data.success && data.user) {
           setUserData(data.user)
-          setCredits(data.credits)
+          setCredits(data.user.credits_remaining)
         }
       } catch (error) {
         console.error('Error fetching user data:', error)
@@ -59,9 +59,9 @@ export default function Demo() {
     fetchUserData()
   }, [])
 
-  // Poll for mobile uploads
+  // Poll for mobile uploads only when mobile upload modal is open
   useEffect(() => {
-    if (!sessionId) return
+    if (!sessionId || !showMobileUpload) return
 
     const pollForUploads = async () => {
       try {
@@ -93,6 +93,7 @@ export default function Demo() {
               setSelectedFile(file)
               setPreviewUrl(imageUrl)
               setOriginalImageUrl(imageUrl)
+              setShowMobileUpload(false) // Close mobile upload modal
             })
             .catch(error => {
               console.error('❌ Error loading mobile upload:', error)
@@ -105,7 +106,7 @@ export default function Demo() {
 
     const interval = setInterval(pollForUploads, 2000)
     return () => clearInterval(interval)
-  }, [sessionId])
+  }, [sessionId, showMobileUpload])
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
