@@ -211,10 +211,19 @@ export default function Demo() {
     try {
       const { createClient } = await import('@/lib/supabase')
       const supabase = createClient()
+      
+      // Clear session on both client and server
       await supabase.auth.signOut()
+      
+      // Also clear server-side session
+      await fetch('/api/debug/clear-session', { method: 'POST' })
+      
+      // Force redirect to home page
       window.location.href = '/'
     } catch (error) {
       console.error('Error signing out:', error)
+      // Force redirect even if there's an error
+      window.location.href = '/'
     }
   }
 

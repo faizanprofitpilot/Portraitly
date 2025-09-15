@@ -8,7 +8,14 @@ export const dynamic = 'force-dynamic';
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url);
   const code = requestUrl.searchParams.get('code');
+  const error = requestUrl.searchParams.get('error');
   const origin = requestUrl.origin;
+
+  // Handle OAuth errors
+  if (error) {
+    console.error('OAuth error in callback:', error);
+    return NextResponse.redirect(new URL(`/?error=${encodeURIComponent(error)}`, origin));
+  }
 
   if (code) {
     const cookieStore = cookies();
@@ -33,11 +40,16 @@ export async function GET(request: NextRequest) {
 
     try {
       // Exchange code for session
-      const { error } = await supabase.auth.exchangeCodeForSession(code);
+      const { data, error: authError } = await supabase.auth.exchangeCodeForSession(code);
       
-      if (error) {
-        console.error('Auth callback error:', error);
-        return NextResponse.redirect(new URL(`/?error=${encodeURIComponent(error.message)}`, origin));
+      if (authError) {
+        console.error('Auth callback error:', authError);
+        return NextResponse.redirect(new URL(`/?error=${encodeURIComponent(authError.message)}`, origin));
+      }
+
+      if (!data.session || !data.user) {
+        console.error('No session or user after code exchange');
+        return NextResponse.redirect(new URL(`/?error=no_session_created`, origin));
       }
 
       // Successfully authenticated, redirect to dashboard
