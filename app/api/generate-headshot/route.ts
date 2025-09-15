@@ -9,7 +9,7 @@ const supabase = createClient(
 
 export async function POST(req: Request) {
   try {
-    console.log("🔍 Generate headshot API called");
+    console.log("🔍 Generate headshot API called - DEPLOYMENT TEST");
     
     const { imageBase64, style, isDemo } = await req.json();
     console.log("📝 Received data:", { style, isDemo, hasImage: !!imageBase64 });

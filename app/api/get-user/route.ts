@@ -6,6 +6,7 @@ export const dynamic = 'force-dynamic'
 
 export async function GET(request: NextRequest) {
   try {
+    console.log('🔍 Get-user API called')
     const cookieStore = cookies()
     
     const supabase = createServerClient(
