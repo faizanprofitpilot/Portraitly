@@ -38,8 +38,8 @@ ALTER TABLE photos ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Users can view own photos" ON photos
   FOR ALL USING (user_email = auth.jwt() ->> 'email');
 
--- Create mobile uploads table for cross-device communication
-CREATE TABLE mobile_uploads (
+-- Create mobile uploads table for cross-device communication (if not exists)
+CREATE TABLE IF NOT EXISTS mobile_uploads (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   session_id TEXT NOT NULL,
   filename TEXT NOT NULL,
@@ -51,6 +51,10 @@ CREATE TABLE mobile_uploads (
 
 -- Enable RLS for mobile uploads
 ALTER TABLE mobile_uploads ENABLE ROW LEVEL SECURITY;
+
+-- Drop existing policies if they exist
+DROP POLICY IF EXISTS "Allow mobile upload inserts" ON mobile_uploads;
+DROP POLICY IF EXISTS "Allow mobile upload reads" ON mobile_uploads;
 
 -- Allow anyone to insert mobile uploads (they're session-based, not user-based)
 CREATE POLICY "Allow mobile upload inserts" ON mobile_uploads
