@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase'
 import { Camera, ArrowRight, CheckCircle, Star, Shield, Zap, Users, Download, Sparkles, Play, LogOut, Crown, Award, Globe } from 'lucide-react'
 import BackgroundPattern from './BackgroundPattern'
@@ -9,6 +9,54 @@ import BeforeAfterSlider from './BeforeAfterSlider'
 export default function LandingPage() {
   const [loading, setLoading] = useState(false)
   const supabase = createClient()
+
+  // Clear any corrupted session data on component mount
+  useEffect(() => {
+    const clearCorruptedSession = async () => {
+      try {
+        // Clear all Supabase-related cookies
+        document.cookie.split(";").forEach((c) => {
+          const eqPos = c.indexOf("=");
+          const name = eqPos > -1 ? c.substr(0, eqPos).trim() : c.trim();
+          if (name.includes('supabase') || name.includes('sb-')) {
+            document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=${window.location.hostname}`;
+            document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
+          }
+        });
+        
+        // Also try to sign out from Supabase
+        await supabase.auth.signOut()
+      } catch (error) {
+        console.log('Session clearing completed')
+      }
+    }
+    
+    clearCorruptedSession()
+  }, [])
+
+  const clearSession = async () => {
+    try {
+      // Clear server-side session
+      await fetch('/api/clear-session', { method: 'POST' })
+      
+      // Clear client-side session
+      await supabase.auth.signOut()
+      
+      // Clear cookies manually
+      document.cookie.split(";").forEach((c) => {
+        const eqPos = c.indexOf("=");
+        const name = eqPos > -1 ? c.substr(0, eqPos).trim() : c.trim();
+        if (name.includes('supabase') || name.includes('sb-')) {
+          document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
+        }
+      });
+      
+      alert('Session cleared! Please refresh the page.')
+      window.location.reload()
+    } catch (error) {
+      console.error('Error clearing session:', error)
+    }
+  }
 
   const handleGoogleSignIn = async () => {
     setLoading(true)
@@ -66,6 +114,12 @@ export default function LandingPage() {
             <a href="/pricing" className="text-white/80 hover:text-white transition-colors font-medium">
               Pricing
             </a>
+            <button
+              onClick={clearSession}
+              className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition-all duration-200 text-sm"
+            >
+              Clear Session
+            </button>
             <button
               onClick={handleGoogleSignIn}
               disabled={loading}
