@@ -34,29 +34,6 @@ export default function LandingPage() {
     clearCorruptedSession()
   }, [])
 
-  const clearSession = async () => {
-    try {
-      // Clear server-side session
-      await fetch('/api/clear-session', { method: 'POST' })
-      
-      // Clear client-side session
-      await supabase.auth.signOut()
-      
-      // Clear cookies manually
-      document.cookie.split(";").forEach((c) => {
-        const eqPos = c.indexOf("=");
-        const name = eqPos > -1 ? c.substr(0, eqPos).trim() : c.trim();
-        if (name.includes('supabase') || name.includes('sb-')) {
-          document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
-        }
-      });
-      
-      alert('Session cleared! Please refresh the page.')
-      window.location.reload()
-    } catch (error) {
-      console.error('Error clearing session:', error)
-    }
-  }
 
   const handleGoogleSignIn = async () => {
     setLoading(true)
@@ -114,12 +91,6 @@ export default function LandingPage() {
             <a href="/pricing" className="text-white/80 hover:text-white transition-colors font-medium">
               Pricing
             </a>
-            <button
-              onClick={clearSession}
-              className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition-all duration-200 text-sm"
-            >
-              Clear Session
-            </button>
             <button
               onClick={handleGoogleSignIn}
               disabled={loading}
