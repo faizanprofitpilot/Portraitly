@@ -39,9 +39,23 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to fetch uploads' }, { status: 500 });
     }
 
+    // Generate signed URLs for secure access
+    const uploadsWithUrls = await Promise.all(
+      (uploads || []).map(async (upload) => {
+        const { data: signedUrl } = await supabase.storage
+          .from('mobile-uploads')
+          .createSignedUrl(upload.file_url, 3600); // 1 hour expiry
+
+        return {
+          ...upload,
+          file_url: signedUrl?.signedUrl || upload.file_url
+        };
+      })
+    );
+
     return NextResponse.json({
       success: true,
-      uploads: uploads || []
+      uploads: uploadsWithUrls
     });
 
   } catch (error) {

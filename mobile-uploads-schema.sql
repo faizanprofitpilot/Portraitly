@@ -2,7 +2,7 @@
 CREATE TABLE IF NOT EXISTS mobile_uploads (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   session_id TEXT NOT NULL,
-  file_url TEXT NOT NULL,
+  file_url TEXT NOT NULL, -- Stores filename, not public URL
   original_name TEXT NOT NULL,
   file_size INTEGER,
   file_type TEXT,
