@@ -67,7 +67,8 @@ export default function MobileUploadPage() {
               sessionId,
               filename: result.filename,
               originalName: file.name,
-              timestamp: Date.now()
+              fileSize: file.size,
+              fileType: file.type
             })
           });
           

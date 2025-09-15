@@ -38,6 +38,28 @@ ALTER TABLE photos ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Users can view own photos" ON photos
   FOR ALL USING (user_email = auth.jwt() ->> 'email');
 
+-- Create mobile uploads table for cross-device communication
+CREATE TABLE mobile_uploads (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  session_id TEXT NOT NULL,
+  filename TEXT NOT NULL,
+  original_name TEXT NOT NULL,
+  file_size INTEGER,
+  file_type TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Enable RLS for mobile uploads
+ALTER TABLE mobile_uploads ENABLE ROW LEVEL SECURITY;
+
+-- Allow anyone to insert mobile uploads (they're session-based, not user-based)
+CREATE POLICY "Allow mobile upload inserts" ON mobile_uploads
+  FOR INSERT WITH CHECK (true);
+
+-- Allow anyone to read mobile uploads by session_id
+CREATE POLICY "Allow mobile upload reads" ON mobile_uploads
+  FOR SELECT USING (true);
+
 -- Function to consume credits
 CREATE OR REPLACE FUNCTION consume_credit(user_email_param TEXT)
 RETURNS INTEGER
