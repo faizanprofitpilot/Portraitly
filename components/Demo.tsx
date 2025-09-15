@@ -67,41 +67,42 @@ export default function Demo() {
       try {
         console.log('📱 Polling server for mobile uploads, session:', sessionId)
         
-        const response = await fetch(`/api/mobile-upload-status?sessionId=${sessionId}`)
+        const response = await fetch(`/api/mobile-uploads?sessionId=${sessionId}`)
         const data = await response.json()
         
         console.log('📱 Server response:', data)
         
-        if (data.uploads && data.uploads.length > 0) {
+        if (data.success && data.uploads && data.uploads.length > 0) {
           // Process the first uploaded file
           const uploadedFile = data.uploads[0]
-          const imageUrl = `/uploads/${uploadedFile.filename}`
+          const imageUrl = uploadedFile.file_url
           
           console.log('📸 Processing mobile upload:', uploadedFile, 'URL:', imageUrl)
-          console.log('📸 Full uploaded file data:', uploadedFile)
           
-          // Test if the image URL is accessible
-          console.log('🔍 Testing image accessibility...')
+          // Create a File object from the uploaded image
           fetch(imageUrl)
             .then(response => {
-              console.log('🔍 Image fetch response:', response.status, response.statusText)
               if (!response.ok) {
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`)
               }
               return response.blob()
             })
             .then(blob => {
-              console.log('🔍 Blob created successfully, size:', blob.size)
-              const file = new File([blob], uploadedFile.originalName, { type: 'image/jpeg' })
+              const file = new File([blob], uploadedFile.original_name, { type: uploadedFile.file_type })
               console.log('✅ Mobile upload processed successfully:', file.name)
               setSelectedFile(file)
               setPreviewUrl(imageUrl)
               setOriginalImageUrl(imageUrl)
+              
+              // Clean up the uploaded files after processing
+              fetch(`/api/mobile-uploads?sessionId=${sessionId}`, {
+                method: 'DELETE'
+              }).catch(error => {
+                console.error('Failed to clean up uploads:', error)
+              })
             })
             .catch(error => {
               console.error('❌ Error loading mobile upload:', error)
-              console.error('❌ Failed URL:', imageUrl)
-              console.error('❌ Uploaded file data:', uploadedFile)
             })
         }
       } catch (error) {

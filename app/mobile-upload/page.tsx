@@ -47,7 +47,7 @@ export default function MobileUploadPage() {
         formData.append('sessionId', sessionId);
 
         const baseUrl = window.location.origin;
-        const response = await fetch(`${baseUrl}/api/upload`, {
+        const response = await fetch(`${baseUrl}/api/mobile-upload`, {
           method: 'POST',
           body: formData,
         });
@@ -56,36 +56,9 @@ export default function MobileUploadPage() {
           const result = await response.json();
           console.log('📱 Mobile upload successful:', result);
           setUploadedFiles(prev => [...prev, result.filename]);
-          
-          // Store upload status on server for cross-device polling
-          const baseUrl = window.location.origin;
-          const statusData = {
-            sessionId,
-            filename: result.filename,
-            originalName: file.name,
-            timestamp: Date.now()
-          };
-          
-          console.log('📱 Attempting to store upload status:', statusData);
-          console.log('📱 Sending to URL:', `${baseUrl}/api/mobile-upload-status`);
-          
-          const statusResponse = await fetch(`${baseUrl}/api/mobile-upload-status`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(statusData)
-          });
-          
-          if (statusResponse.ok) {
-            const statusResult = await statusResponse.json();
-            console.log('📱 Upload status stored on server successfully:', statusResult);
-          } else {
-            const errorText = await statusResponse.text();
-            console.error('📱 Failed to store upload status:', statusResponse.status, errorText);
-          }
         } else {
-          console.error('📱 Upload failed:', response.status, response.statusText);
+          const errorData = await response.json();
+          console.error('📱 Upload failed:', response.status, errorData);
         }
       }
       
