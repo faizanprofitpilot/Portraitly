@@ -42,13 +42,21 @@ export async function POST(request: NextRequest) {
     const filepath = join(uploadsDir, filename);
     await writeFile(filepath, buffer);
 
+    console.log('📁 File saved successfully:', {
+      filename,
+      filepath,
+      size: file.size,
+      sessionId
+    });
+
     // Return success response with filename
     return NextResponse.json({
       success: true,
       filename: filename,
       originalName: file.name,
       size: file.size,
-      type: file.type
+      type: file.type,
+      sessionId: sessionId
     });
 
   } catch (error) {

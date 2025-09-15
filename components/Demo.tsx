@@ -78,16 +78,20 @@ export default function Demo() {
           const imageUrl = `/uploads/${uploadedFile.filename}`
           
           console.log('📸 Processing mobile upload:', uploadedFile, 'URL:', imageUrl)
+          console.log('📸 Full uploaded file data:', uploadedFile)
           
-          // Create a File object from the uploaded image
+          // Test if the image URL is accessible
+          console.log('🔍 Testing image accessibility...')
           fetch(imageUrl)
             .then(response => {
+              console.log('🔍 Image fetch response:', response.status, response.statusText)
               if (!response.ok) {
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`)
               }
               return response.blob()
             })
             .then(blob => {
+              console.log('🔍 Blob created successfully, size:', blob.size)
               const file = new File([blob], uploadedFile.originalName, { type: 'image/jpeg' })
               console.log('✅ Mobile upload processed successfully:', file.name)
               setSelectedFile(file)
@@ -96,6 +100,8 @@ export default function Demo() {
             })
             .catch(error => {
               console.error('❌ Error loading mobile upload:', error)
+              console.error('❌ Failed URL:', imageUrl)
+              console.error('❌ Uploaded file data:', uploadedFile)
             })
         }
       } catch (error) {
