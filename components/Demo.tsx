@@ -144,7 +144,7 @@ export default function Demo() {
         body: JSON.stringify({
           imageBase64: base64,
           style: selectedStyle,
-          isDemo: true
+          isDemo: false // This is authenticated user, consume real credits
         })
       })
 
@@ -163,13 +163,26 @@ export default function Demo() {
       if (result.url) {
         console.log('✅ Generated image URL received:', result.url.substring(0, 100) + '...')
         setGeneratedImage(result.url)
-        setCredits(prev => prev - 1)
         setSelectedFile(null)
         setPreviewUrl(null)
 
         // Reset file input
         const fileInput = document.getElementById('file-upload') as HTMLInputElement
         if (fileInput) fileInput.value = ''
+        
+        // Refresh user data to get updated credits from database
+        try {
+          const userResponse = await fetch('/api/get-user')
+          const userData = await userResponse.json()
+          if (userData.success && userData.user) {
+            setCredits(userData.user.credits_remaining)
+            console.log('✅ Credits updated from database:', userData.user.credits_remaining)
+          }
+        } catch (error) {
+          console.error('Failed to refresh user data:', error)
+          // Fallback: manually decrement if refresh fails
+          setCredits(prev => prev - 1)
+        }
         
         // Scroll to the generated image section
         setTimeout(() => {
