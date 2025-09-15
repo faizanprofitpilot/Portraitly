@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { Camera, Download, ArrowLeft, Sparkles, Image as ImageIcon, CheckCircle, X, Maximize2, Smartphone } from 'lucide-react'
 import Link from 'next/link'
 import MobileUploadModal from './MobileUploadModal'
+import { createClient } from '@/lib/supabase/client'
 
 const STYLE_OPTIONS = [
   { id: 'professional', name: 'Professional', description: 'Clean, corporate look perfect for LinkedIn' },
@@ -15,19 +16,20 @@ const STYLE_OPTIONS = [
 ]
 
 export default function Demo() {
-  console.log('🎯 Demo component rendering')
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [selectedStyle, setSelectedStyle] = useState('professional')
   const [uploading, setUploading] = useState(false)
   const [generatedImage, setGeneratedImage] = useState<string | null>(null)
-  const [credits, setCredits] = useState(10)
+  const [credits, setCredits] = useState(0)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [originalImageUrl, setOriginalImageUrl] = useState<string | null>(null)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [showMobileUpload, setShowMobileUpload] = useState(false)
   const [sessionId, setSessionId] = useState<string>('')
   const [userData, setUserData] = useState<any>(null)
-  const [isLoadingAuth, setIsLoadingAuth] = useState(true)
+  const [isLoading, setIsLoading] = useState(true)
+
+  const supabase = createClient()
 
   // Generate session ID on component mount
   useEffect(() => {
@@ -35,25 +37,25 @@ export default function Demo() {
     setSessionId(newSessionId)
   }, [])
 
-  // Fetch user data and credits on mount
+  // Fetch user data on mount
   useEffect(() => {
     const fetchUserData = async () => {
       try {
-        // First ensure user exists
-        await fetch('/api/ensure-user', { method: 'POST' })
-        
-        // Then fetch user data and credits
-        const response = await fetch('/api/get-user')
+        const response = await fetch('/api/user')
         const data = await response.json()
         
         if (data.success && data.user) {
           setUserData(data.user)
-          setCredits(data.user.credits_remaining)
+          setCredits(data.user.credits)
+        } else {
+          console.error('Failed to fetch user data:', data.error)
+          window.location.href = '/'
         }
       } catch (error) {
         console.error('Error fetching user data:', error)
+        window.location.href = '/'
       } finally {
-        setIsLoadingAuth(false)
+        setIsLoading(false)
       }
     }
 
@@ -123,68 +125,43 @@ export default function Demo() {
   const handleGenerate = async () => {
     if (!selectedFile || credits === 0) return
 
-    console.log('🎯 Starting Gemini 2.5 Flash generation with style:', selectedStyle)
-    console.log('📁 Selected file:', selectedFile.name)
-
     setUploading(true)
     try {
       // Convert file to base64 for API
       const base64 = await fileToBase64(selectedFile)
       
-      // Create the prompt based on selected style
-      const stylePrompt = getStylePrompt(selectedStyle)
-      
-      console.log('🤖 Calling Gemini 2.5 Flash API...')
-      console.log('📝 Prompt:', stylePrompt)
-      
-      // Call Gemini 2.5 Flash API
-      const response = await fetch('/api/generate-headshot', {
+      // Call clean generate API
+      const response = await fetch('/api/generate', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           imageBase64: base64,
-          style: selectedStyle,
-          isDemo: false // This is authenticated user, consume real credits
+          style: selectedStyle
         })
       })
 
       if (!response.ok) {
         const errorData = await response.json()
         if (response.status === 402 && errorData.requiresUpgrade) {
-          alert('No credits remaining! Please sign up for unlimited generations.')
+          alert('No credits remaining! Please upgrade for unlimited generations.')
           return
         }
         throw new Error(`API Error: ${response.status}`)
       }
 
       const result = await response.json()
-      console.log('✅ Gemini API response:', result)
 
       if (result.url) {
-        console.log('✅ Generated image URL received:', result.url.substring(0, 100) + '...')
         setGeneratedImage(result.url)
+        setCredits(result.creditsRemaining)
         setSelectedFile(null)
         setPreviewUrl(null)
 
         // Reset file input
         const fileInput = document.getElementById('file-upload') as HTMLInputElement
         if (fileInput) fileInput.value = ''
-        
-        // Refresh user data to get updated credits from database
-        try {
-          const userResponse = await fetch('/api/get-user')
-          const userData = await userResponse.json()
-          if (userData.success && userData.user) {
-            setCredits(userData.user.credits_remaining)
-            console.log('✅ Credits updated from database:', userData.user.credits_remaining)
-          }
-        } catch (error) {
-          console.error('Failed to refresh user data:', error)
-          // Fallback: manually decrement if refresh fails
-          setCredits(prev => prev - 1)
-        }
         
         // Scroll to the generated image section
         setTimeout(() => {
@@ -210,20 +187,10 @@ export default function Demo() {
 
   const handleSignOut = async () => {
     try {
-      const { createClient } = await import('@/lib/supabase')
-      const supabase = createClient()
-      
-      // Clear session on both client and server
       await supabase.auth.signOut()
-      
-      // Also clear server-side session
-      await fetch('/api/debug/clear-session', { method: 'POST' })
-      
-      // Force redirect to home page
       window.location.href = '/'
     } catch (error) {
       console.error('Error signing out:', error)
-      // Force redirect even if there's an error
       window.location.href = '/'
     }
   }
@@ -305,7 +272,7 @@ export default function Demo() {
     }
   }
 
-  if (isLoadingAuth) {
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-magical-dark via-magical-deep to-magical-teal flex items-center justify-center">
         <div className="text-center">
