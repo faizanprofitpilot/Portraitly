@@ -400,7 +400,7 @@ export default function LandingPage() {
               )}
             </button>
             <a
-              href="/demo"
+              href="/dashboard"
               className="border-2 border-white text-white font-bold text-lg px-8 py-4 rounded-2xl hover:bg-white/10 transition-all duration-200 flex items-center justify-center space-x-3"
             >
               <Play className="h-5 w-5" />
@@ -430,7 +430,7 @@ export default function LandingPage() {
             <div>
               <h3 className="text-white font-semibold mb-4">Product</h3>
               <ul className="space-y-2">
-                <li><a href="/demo" className="text-gray-300 hover:text-white transition-colors">Demo</a></li>
+                <li><a href="/dashboard" className="text-gray-300 hover:text-white transition-colors">Dashboard</a></li>
                 <li><a href="/pricing" className="text-gray-300 hover:text-white transition-colors">Pricing</a></li>
                 <li><a href="/account" className="text-gray-300 hover:text-white transition-colors">Account</a></li>
               </ul>

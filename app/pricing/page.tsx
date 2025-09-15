@@ -17,7 +17,7 @@ const plans = [
       'Email support'
     ],
     cta: 'Start Free',
-    href: '/demo',
+    href: '/dashboard',
     popular: false
   },
   {
@@ -73,7 +73,7 @@ export default function PricingPage() {
             Portraitly
           </Link>
           <div className="flex items-center space-x-6">
-            <Link href="/demo" className="text-white/80 hover:text-white transition-colors">
+            <Link href="/dashboard" className="text-white/80 hover:text-white transition-colors">
               Demo
             </Link>
             <Link href="/pricing" className="text-white font-medium">
