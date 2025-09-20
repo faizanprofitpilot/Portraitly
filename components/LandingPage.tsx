@@ -12,40 +12,32 @@ export default function LandingPage() {
   const [user, setUser] = useState<any>(null)
   const supabase = createClient()
 
-  // Check auth state using server-side validation only
+  // Simple auth check - just check if user can access dashboard
   useEffect(() => {
     const checkAuth = async () => {
-      console.log('🔍 Landing page: Checking auth state via server...')
-      
       try {
-        const { user, error } = await checkAuthStatus()
+        console.log('🔍 Landing page: Checking if user can access dashboard...')
         
-        if (user && !error) {
-          console.log('✅ Landing page: User found via server:', user.email)
-          setUser(user)
+        // Try to fetch dashboard - if successful, user is authenticated
+        const response = await fetch('/dashboard', { 
+          method: 'HEAD',
+          credentials: 'include'
+        })
+        
+        if (response.ok) {
+          console.log('✅ Landing page: User can access dashboard - authenticated')
+          setUser({ email: 'authenticated@user.com' }) // Dummy user object
         } else {
-          console.log('❌ Landing page: No authenticated user found via server:', error)
+          console.log('❌ Landing page: Cannot access dashboard - not authenticated')
           setUser(null)
         }
       } catch (error) {
-        console.log('❌ Landing page: Server auth check failed:', error)
+        console.log('❌ Landing page: Auth check failed:', error)
         setUser(null)
       }
     }
     
-    // Check auth immediately and on focus (for session persistence)
     checkAuth()
-    
-    const handleFocus = () => {
-      console.log('🔄 Landing page: Window focused, rechecking auth...')
-      checkAuth()
-    }
-    
-    window.addEventListener('focus', handleFocus)
-    
-    return () => {
-      window.removeEventListener('focus', handleFocus)
-    }
   }, [])
 
 
