@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase'
+import { checkAuthStatus } from '@/lib/auth-actions'
 import { Camera, ArrowRight, CheckCircle, Star, Shield, Zap, Users, Download, Sparkles, Play, LogOut, Crown, Award, Globe } from 'lucide-react'
 import BackgroundPattern from './BackgroundPattern'
 import BeforeAfterSlider from './BeforeAfterSlider'
@@ -11,56 +12,23 @@ export default function LandingPage() {
   const [user, setUser] = useState<any>(null)
   const supabase = createClient()
 
-  // Check auth state with error handling
+  // Check auth state using server-side validation
   useEffect(() => {
     const checkAuth = async () => {
+      console.log('🔍 Landing page: Checking auth state via server...')
+      
       try {
-        console.log('🔍 Landing page: Checking auth state...')
+        const { user, error } = await checkAuthStatus()
         
-        // Check for existing session
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession()
-        console.log('📊 Landing page: Session check result:', { session: !!session, user: !!session?.user, error: sessionError })
-        
-        if (session?.user && !sessionError) {
-          console.log('✅ Landing page: User found in session:', session.user.email)
-          setUser(session.user)
-          return
-        }
-        
-        // Fallback to getUser if no session
-        const { data: { user }, error: userError } = await supabase.auth.getUser()
-        console.log('📊 Landing page: User check result:', { user: !!user, error: userError })
-        
-        if (user && !userError) {
-          console.log('✅ Landing page: User found via getUser:', user.email)
+        if (user && !error) {
+          console.log('✅ Landing page: User found via server:', user.email)
           setUser(user)
         } else {
-          console.log('❌ Landing page: No authenticated user found')
+          console.log('❌ Landing page: No authenticated user found via server:', error)
+          setUser(null)
         }
       } catch (error) {
-        console.log('❌ Landing page: Auth check error:', error)
-        // If there's a corruption error, clear the session and try again
-        if (error instanceof Error && error.message && 
-            (error.message.includes('Cannot create property') || 
-             error.message.includes('_recoverAndRefresh') ||
-             error.message.includes('_initialize'))) {
-          console.log('🧹 Landing page: Detected session corruption, clearing...')
-          try {
-            await supabase.auth.signOut()
-            // Clear corrupted cookies
-            document.cookie.split(";").forEach((c) => {
-              const eqPos = c.indexOf("=");
-              const name = eqPos > -1 ? c.substr(0, eqPos).trim() : c.trim();
-              if (name.includes('supabase') || name.includes('sb-')) {
-                document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=${window.location.hostname}`;
-                document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
-              }
-            });
-            console.log('🧹 Landing page: Cleared corrupted session')
-          } catch (clearError) {
-            console.log('🧹 Landing page: Session clearing completed')
-          }
-        }
+        console.log('❌ Landing page: Server auth check failed:', error)
         setUser(null)
       }
     }
@@ -68,7 +36,7 @@ export default function LandingPage() {
     // Check auth immediately
     checkAuth()
     
-    // Listen for auth changes
+    // Still listen for auth changes (for immediate feedback)
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       console.log('🔄 Landing page: Auth state changed:', { event, user: !!session?.user })
       if (session?.user) {
