@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic'
 
 export async function POST(req: Request) {
   try {
-    const { imageBase64, style } = await req.json()
+    const { imageBase64, style, genderPreference } = await req.json()
 
     if (!imageBase64) {
       return NextResponse.json(
@@ -55,18 +55,33 @@ export async function POST(req: Request) {
       )
     }
 
-    // Build AI prompt (keeping your existing logic)
-    const prompt = `Transform this casual selfie into a professional headshot while preserving the person's exact facial identity. 
+    // Build gender-aware AI prompt
+    const getGenderGuidance = () => {
+      switch (genderPreference) {
+        case 'male':
+          return '- Professional masculine attire: business suits, dress shirts, ties, blazers\n- Conservative, traditional business style appropriate for male professionals'
+        case 'female':
+          return '- Professional feminine attire: blouses, blazers, dresses, professional skirts/pants\n- Elegant, polished business style appropriate for female professionals'
+        case 'neutral':
+          return '- Gender-neutral professional attire: blazers, button-down shirts, professional pants, modern business wear\n- Contemporary, inclusive business style that works for any gender expression'
+        case 'auto':
+        default:
+          return '- Professional attire that matches the person\'s gender expression and appearance\n- Appropriate business wear based on the person\'s presentation'
+      }
+    }
+
+    const prompt = `Transform this casual selfie into a professional headshot while preserving the person's exact facial identity and gender expression. 
 
 CRITICAL REQUIREMENTS:
 - Keep the exact same face shape, bone structure, and facial features
 - Preserve the person's unique facial characteristics (eyes, nose, mouth, jawline)
 - Maintain the same skin tone, hair color, and natural appearance
+- Preserve the person's gender identity and expression
 - Only change clothing, background, and lighting to professional standards
 - Do not alter facial structure, age, or physical appearance
 
 Apply ${style} styling with:
-- Professional attire appropriate for the industry
+${getGenderGuidance()}
 - Clean, neutral background
 - Professional lighting that enhances the subject
 - Natural, confident expression

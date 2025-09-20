@@ -18,6 +18,7 @@ const STYLE_OPTIONS = [
 export default function Demo() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [selectedStyle, setSelectedStyle] = useState('professional')
+  const [genderPreference, setGenderPreference] = useState<'male' | 'female' | 'auto' | 'neutral'>('auto')
   const [uploading, setUploading] = useState(false)
   const [generatedImage, setGeneratedImage] = useState<string | null>(null)
   const [credits, setCredits] = useState(0)
@@ -138,7 +139,8 @@ export default function Demo() {
         },
         body: JSON.stringify({
           imageBase64: base64,
-          style: selectedStyle
+          style: selectedStyle,
+          genderPreference: genderPreference
         })
       })
 
@@ -418,6 +420,40 @@ export default function Demo() {
                     <div className="text-xs text-gray-300">{style.description}</div>
                   </button>
                 ))}
+              </div>
+
+              {/* Gender Preference Toggle */}
+              <div className="mt-6">
+                <div className="mb-3">
+                  <h3 className="text-lg font-semibold text-white mb-2">
+                    Attire Preference
+                  </h3>
+                  <p className="text-sm text-gray-300">
+                    Choose the style of professional attire that works best for you
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  {[
+                    { id: 'auto', name: 'Auto', description: 'Let AI decide based on image' },
+                    { id: 'neutral', name: 'Neutral', description: 'Gender-neutral professional attire' },
+                    { id: 'male', name: 'Masculine', description: 'Suits, ties, masculine styles' },
+                    { id: 'female', name: 'Feminine', description: 'Blouses, dresses, feminine styles' }
+                  ].map((option) => (
+                    <button
+                      key={option.id}
+                      onClick={() => setGenderPreference(option.id as 'male' | 'female' | 'auto' | 'neutral')}
+                      className={`flex-1 p-3 rounded-lg border-2 transition-all duration-200 text-center backdrop-blur-sm ${
+                        genderPreference === option.id
+                          ? 'border-accent-turquoise bg-accent-turquoise/20 shadow-lg'
+                          : 'border-white/20 bg-white/5 hover:bg-white/10 hover:border-white/30'
+                      }`}
+                    >
+                      <div className="font-semibold text-white mb-1">{option.name}</div>
+                      <div className="text-xs text-gray-300">{option.description}</div>
+                    </button>
+                  ))}
+                </div>
               </div>
 
               <button
