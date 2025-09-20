@@ -13,6 +13,23 @@ export default function LandingPage() {
 
   // Check auth state with error handling
   useEffect(() => {
+    const clearCorruptedSession = async () => {
+      try {
+        // Clear any corrupted Supabase cookies proactively
+        document.cookie.split(";").forEach((c) => {
+          const eqPos = c.indexOf("=");
+          const name = eqPos > -1 ? c.substr(0, eqPos).trim() : c.trim();
+          if (name.includes('supabase') || name.includes('sb-')) {
+            document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=${window.location.hostname}`;
+            document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
+          }
+        });
+        console.log('🧹 Landing page: Proactively cleared potentially corrupted cookies')
+      } catch (error) {
+        console.log('🧹 Landing page: Cookie clearing completed')
+      }
+    }
+
     const checkAuth = async () => {
       try {
         console.log('🔍 Landing page: Checking auth state...')
@@ -40,7 +57,10 @@ export default function LandingPage() {
       } catch (error) {
         console.log('❌ Landing page: Auth check error:', error)
         // If there's a corruption error, clear the session and try again
-        if (error instanceof Error && error.message && error.message.includes('Cannot create property')) {
+        if (error instanceof Error && error.message && 
+            (error.message.includes('Cannot create property') || 
+             error.message.includes('_recoverAndRefresh') ||
+             error.message.includes('_initialize'))) {
           console.log('🧹 Landing page: Detected session corruption, clearing...')
           try {
             await supabase.auth.signOut()
@@ -62,7 +82,11 @@ export default function LandingPage() {
       }
     }
     
-    checkAuth()
+    // Clear potentially corrupted session first, then check auth
+    clearCorruptedSession().then(() => {
+      // Wait a moment for cookies to clear
+      setTimeout(checkAuth, 300)
+    })
     
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
