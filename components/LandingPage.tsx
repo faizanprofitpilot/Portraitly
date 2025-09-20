@@ -12,7 +12,7 @@ export default function LandingPage() {
   const [user, setUser] = useState<any>(null)
   const supabase = createClient()
 
-  // Check auth state using server-side validation
+  // Check auth state using server-side validation only
   useEffect(() => {
     const checkAuth = async () => {
       console.log('🔍 Landing page: Checking auth state via server...')
@@ -33,20 +33,19 @@ export default function LandingPage() {
       }
     }
     
-    // Check auth immediately
+    // Check auth immediately and on focus (for session persistence)
     checkAuth()
     
-    // Still listen for auth changes (for immediate feedback)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log('🔄 Landing page: Auth state changed:', { event, user: !!session?.user })
-      if (session?.user) {
-        setUser(session.user)
-      } else {
-        setUser(null)
-      }
-    })
+    const handleFocus = () => {
+      console.log('🔄 Landing page: Window focused, rechecking auth...')
+      checkAuth()
+    }
     
-    return () => subscription.unsubscribe()
+    window.addEventListener('focus', handleFocus)
+    
+    return () => {
+      window.removeEventListener('focus', handleFocus)
+    }
   }, [])
 
 
