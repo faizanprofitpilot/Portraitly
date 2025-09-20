@@ -8,38 +8,34 @@ import BeforeAfterSlider from './BeforeAfterSlider'
 
 export default function LandingPage() {
   const [loading, setLoading] = useState(false)
+  const [user, setUser] = useState<any>(null)
   const supabase = createClient()
 
-  // Clear any corrupted session data on component mount
+  // Check if user is already authenticated
   useEffect(() => {
-    const clearCorruptedSession = async () => {
+    const checkAuth = async () => {
       try {
-        // Clear all Supabase-related cookies
-        document.cookie.split(";").forEach((c) => {
-          const eqPos = c.indexOf("=");
-          const name = eqPos > -1 ? c.substr(0, eqPos).trim() : c.trim();
-          if (name.includes('supabase') || name.includes('sb-')) {
-            document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=${window.location.hostname}`;
-            document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
-          }
-        });
-        
-        // Also try to sign out from Supabase
-        await supabase.auth.signOut()
+        const { data: { user } } = await supabase.auth.getUser()
+        if (user) {
+          setUser(user)
+        }
       } catch (error) {
-        console.log('Session clearing completed')
+        console.log('Auth check completed')
       }
     }
     
-    clearCorruptedSession()
+    checkAuth()
   }, [])
 
 
   const handleGoogleSignIn = async () => {
     setLoading(true)
     try {
-      // First clear any existing session to prevent auto-login
-      await supabase.auth.signOut()
+      // If user is already authenticated, redirect to dashboard
+      if (user) {
+        window.location.href = '/dashboard'
+        return
+      }
       
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
@@ -100,7 +96,7 @@ export default function LandingPage() {
                 <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-magical-deep"></div>
               ) : (
                 <>
-                  <span>Try for Free</span>
+                  <span>{user ? 'Go to Dashboard' : 'Try for Free'}</span>
                   <ArrowRight className="h-5 w-5" />
                 </>
               )}
@@ -138,7 +134,7 @@ export default function LandingPage() {
                   ) : (
                     <>
                       <Crown className="h-5 w-5" />
-                      <span>Try for Free</span>
+                      <span>{user ? 'Go to Dashboard' : 'Try for Free'}</span>
                       <ArrowRight className="h-5 w-5" />
                     </>
                   )}
@@ -366,7 +362,7 @@ export default function LandingPage() {
               ) : (
                 <>
                   <Sparkles className="h-5 w-5" />
-                  <span>Start Your Free Trial</span>
+                  <span>{user ? 'Go to Dashboard' : 'Start Your Free Trial'}</span>
                 </>
               )}
             </button>
