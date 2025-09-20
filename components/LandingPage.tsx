@@ -24,6 +24,7 @@ export default function LandingPage() {
         if (session?.user) {
           console.log('✅ Landing page: User found in session:', session.user.email)
           setUser(session.user)
+          console.log('🔄 Landing page: User state set to:', session.user.email)
           return
         }
         
@@ -94,6 +95,9 @@ export default function LandingPage() {
     }
   }
 
+  // Debug log for render
+  console.log('🎨 Landing page render - user state:', { user: !!user, email: user?.email })
+  
   return (
     <div className="min-h-screen bg-premium-gradient relative overflow-hidden">
       {/* Background Pattern */}
@@ -130,7 +134,7 @@ export default function LandingPage() {
                 <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-magical-deep"></div>
               ) : (
                 <>
-                  <span>{user ? 'Go to Dashboard' : 'Try for Free'}</span>
+                  <span>{user ? `Go to Dashboard (${user.email})` : 'Try for Free'}</span>
                   <ArrowRight className="h-5 w-5" />
                 </>
               )}
@@ -168,7 +172,7 @@ export default function LandingPage() {
                   ) : (
                     <>
                       <Crown className="h-5 w-5" />
-                      <span>{user ? 'Go to Dashboard' : 'Try for Free'}</span>
+                      <span>{user ? `Go to Dashboard (${user.email})` : 'Try for Free'}</span>
                       <ArrowRight className="h-5 w-5" />
                     </>
                   )}
@@ -396,7 +400,7 @@ export default function LandingPage() {
               ) : (
                 <>
                   <Sparkles className="h-5 w-5" />
-                  <span>{user ? 'Go to Dashboard' : 'Start Your Free Trial'}</span>
+                  <span>{user ? `Go to Dashboard (${user.email})` : 'Start Your Free Trial'}</span>
                 </>
               )}
             </button>
