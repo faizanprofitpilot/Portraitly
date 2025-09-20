@@ -11,28 +11,44 @@ export default function LandingPage() {
   const [user, setUser] = useState<any>(null)
   const supabase = createClient()
 
-  // Check if user is already authenticated
+  // Clear corrupted session data and check auth
   useEffect(() => {
+    const clearCorruptedSession = async () => {
+      try {
+        // Clear any corrupted Supabase cookies
+        document.cookie.split(";").forEach((c) => {
+          const eqPos = c.indexOf("=");
+          const name = eqPos > -1 ? c.substr(0, eqPos).trim() : c.trim();
+          if (name.includes('supabase') || name.includes('sb-')) {
+            document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=${window.location.hostname}`;
+            document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
+          }
+        });
+        console.log('🧹 Landing page: Cleared corrupted cookies')
+      } catch (error) {
+        console.log('🧹 Landing page: Cookie clearing completed')
+      }
+    }
+    
     const checkAuth = async () => {
       try {
         console.log('🔍 Landing page: Checking auth state...')
         
-        // Check for existing session first
-        const { data: { session } } = await supabase.auth.getSession()
-        console.log('📊 Landing page: Session check result:', { session: !!session, user: !!session?.user })
+        // Check for existing session
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+        console.log('📊 Landing page: Session check result:', { session: !!session, user: !!session?.user, error: sessionError })
         
-        if (session?.user) {
+        if (session?.user && !sessionError) {
           console.log('✅ Landing page: User found in session:', session.user.email)
           setUser(session.user)
-          console.log('🔄 Landing page: User state set to:', session.user.email)
           return
         }
         
         // Fallback to getUser if no session
-        const { data: { user } } = await supabase.auth.getUser()
-        console.log('📊 Landing page: User check result:', { user: !!user })
+        const { data: { user }, error: userError } = await supabase.auth.getUser()
+        console.log('📊 Landing page: User check result:', { user: !!user, error: userError })
         
-        if (user) {
+        if (user && !userError) {
           console.log('✅ Landing page: User found via getUser:', user.email)
           setUser(user)
         } else {
@@ -40,10 +56,16 @@ export default function LandingPage() {
         }
       } catch (error) {
         console.log('❌ Landing page: Auth check error:', error)
+        // Clear any corrupted state
+        setUser(null)
       }
     }
     
-    checkAuth()
+    // Clear corrupted session first, then check auth
+    clearCorruptedSession().then(() => {
+      // Wait a moment for cookies to clear
+      setTimeout(checkAuth, 200)
+    })
     
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
