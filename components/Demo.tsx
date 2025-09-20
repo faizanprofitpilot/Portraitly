@@ -45,18 +45,24 @@ export default function Demo() {
   useEffect(() => {
     const fetchUserData = async () => {
       try {
+        console.log('🔍 Demo: Fetching user data from /api/user...')
         const response = await fetch('/api/user')
+        console.log('📊 Demo: API response status:', response.status)
         const data = await response.json()
+        console.log('📊 Demo: API response data:', data)
         
         if (data.success && data.user) {
+          console.log('✅ Demo: User data fetched successfully:', data.user.email)
           setUserData(data.user)
           setCredits(data.user.credits)
         } else {
-          console.error('Failed to fetch user data:', data.error)
+          console.error('❌ Demo: Failed to fetch user data:', data.error)
+          console.log('🔄 Demo: Redirecting to landing page due to user data failure')
           window.location.href = '/'
         }
       } catch (error) {
-        console.error('Error fetching user data:', error)
+        console.error('❌ Demo: Error fetching user data:', error)
+        console.log('🔄 Demo: Redirecting to landing page due to fetch error')
         window.location.href = '/'
       } finally {
         setIsLoading(false)
