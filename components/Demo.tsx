@@ -16,11 +16,13 @@ const STYLE_OPTIONS = [
 ]
 
 export default function Demo() {
-  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([])
+  const [selectedFile, setSelectedFile] = useState<File | null>(null) // Keep for backward compatibility
   const [selectedStyle, setSelectedStyle] = useState('professional')
   const [genderPreference, setGenderPreference] = useState<'male' | 'female' | 'auto' | 'neutral'>('auto')
   const [uploading, setUploading] = useState(false)
   const [generatedImage, setGeneratedImage] = useState<string | null>(null)
+  const [generatedImages, setGeneratedImages] = useState<string[]>([])
   const [credits, setCredits] = useState(0)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [originalImageUrl, setOriginalImageUrl] = useState<string | null>(null)
@@ -29,6 +31,7 @@ export default function Demo() {
   const [sessionId, setSessionId] = useState<string>('')
   const [userData, setUserData] = useState<any>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [isDragOver, setIsDragOver] = useState(false)
 
   const supabase = createClient()
 
@@ -113,51 +116,101 @@ export default function Demo() {
   }, [sessionId, showMobileUpload])
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
-    if (file) {
-      setSelectedFile(file)
-      // Create preview URL for the uploaded image
-      const url = URL.createObjectURL(file)
+    const files = Array.from(event.target.files || [])
+    if (files.length > 0) {
+      setSelectedFiles(files)
+      setSelectedFile(files[0]) // Keep first file for backward compatibility
+      // Create preview URL for the first uploaded image
+      const url = URL.createObjectURL(files[0])
+      setPreviewUrl(url)
+      setOriginalImageUrl(url) // Store original image URL separately
+    }
+  }
+
+  const handleDragOver = (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault()
+    setIsDragOver(true)
+  }
+
+  const handleDragLeave = (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault()
+    setIsDragOver(false)
+  }
+
+  const handleDrop = (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault()
+    setIsDragOver(false)
+    
+    const files = Array.from(event.dataTransfer.files).filter(file => 
+      file.type.startsWith('image/')
+    )
+    
+    if (files.length > 0) {
+      setSelectedFiles(files)
+      setSelectedFile(files[0]) // Keep first file for backward compatibility
+      // Create preview URL for the first uploaded image
+      const url = URL.createObjectURL(files[0])
       setPreviewUrl(url)
       setOriginalImageUrl(url) // Store original image URL separately
     }
   }
 
   const handleGenerate = async () => {
-    if (!selectedFile || credits === 0) return
+    if (selectedFiles.length === 0 || credits < selectedFiles.length) return
 
     setUploading(true)
     try {
-      // Convert file to base64 for API
-      const base64 = await fileToBase64(selectedFile)
-      
-      // Call clean generate API
-      const response = await fetch('/api/generate', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          imageBase64: base64,
-          style: selectedStyle,
-          genderPreference: genderPreference
-        })
-      })
+      const generatedUrls: string[] = []
+      let finalCredits = credits
 
-      if (!response.ok) {
-        const errorData = await response.json()
-        if (response.status === 402 && errorData.requiresUpgrade) {
-          alert('No credits remaining! Please upgrade for unlimited generations.')
-          return
+      // Process each file
+      for (let i = 0; i < selectedFiles.length; i++) {
+        const file = selectedFiles[i]
+        console.log(`Processing image ${i + 1}/${selectedFiles.length}:`, file.name)
+        
+        // Convert file to base64 for API
+        const base64 = await fileToBase64(file)
+        
+        // Call clean generate API
+        const response = await fetch('/api/generate', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            imageBase64: base64,
+            style: selectedStyle,
+            genderPreference: genderPreference
+          })
+        })
+
+        if (!response.ok) {
+          const errorData = await response.json()
+          if (response.status === 402 && errorData.requiresUpgrade) {
+            alert('You need more credits to generate images. Please upgrade your plan.')
+            break
+          } else {
+            alert(`Error processing ${file.name}: ${errorData.error || 'Failed to generate image'}`)
+            continue
+          }
         }
-        throw new Error(`API Error: ${response.status}`)
+
+        const result = await response.json()
+
+        if (result.url) {
+          generatedUrls.push(result.url)
+          finalCredits = result.creditsRemaining
+        }
       }
 
-      const result = await response.json()
-
-      if (result.url) {
-        setGeneratedImage(result.url)
-        setCredits(result.creditsRemaining)
+      if (generatedUrls.length > 0) {
+        if (generatedUrls.length === 1) {
+          setGeneratedImage(generatedUrls[0])
+        } else {
+          setGeneratedImages(generatedUrls)
+        }
+        setCredits(finalCredits)
+        setSelectedFiles([])
         setSelectedFile(null)
         setPreviewUrl(null)
 
@@ -175,10 +228,7 @@ export default function Demo() {
             })
           }
         }, 100)
-      } else {
-        throw new Error('No generated image returned')
       }
-
     } catch (error) {
       console.error('❌ Error generating with Gemini:', error)
       alert('Failed to generate headshot with AI. Please try again.')
@@ -337,31 +387,69 @@ export default function Demo() {
         <div className="bg-white/10 backdrop-blur-sm rounded-3xl p-8 border border-white/20 mb-8">
           <div className="grid lg:grid-cols-2 gap-8">
             {/* Upload Area */}
-            <div className="border-2 border-dashed border-white/30 rounded-2xl p-8 text-center">
+            <div 
+              className={`border-2 border-dashed rounded-2xl p-8 text-center transition-all duration-200 ${
+                isDragOver 
+                  ? 'border-accent-turquoise bg-accent-turquoise/10 scale-105' 
+                  : 'border-white/30 hover:border-white/50'
+              }`}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+            >
               <input
                 id="file-upload"
                 type="file"
                 accept="image/*"
+                multiple
                 onChange={handleFileSelect}
                 className="hidden"
               />
               
               <div className="space-y-6">
-                {previewUrl ? (
+                {selectedFiles.length > 0 ? (
                   <div className="space-y-4">
-                    <div className="aspect-square max-w-xs mx-auto rounded-2xl overflow-hidden shadow-2xl">
-                      <img
-                        src={previewUrl}
-                        alt="Uploaded selfie"
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                    <div>
+                    {selectedFiles.length === 1 ? (
+                      <div className="aspect-square max-w-xs mx-auto rounded-2xl overflow-hidden shadow-2xl">
+                        <img
+                          src={previewUrl || ''}
+                          alt="Uploaded selfie"
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-2 gap-3 max-w-md mx-auto">
+                        {selectedFiles.slice(0, 4).map((file, index) => {
+                          const url = index === 0 ? (previewUrl || '') : URL.createObjectURL(file)
+                          return (
+                            <div key={index} className="aspect-square rounded-xl overflow-hidden shadow-lg">
+                              <img
+                                src={url}
+                                alt={`Uploaded image ${index + 1}`}
+                                className="w-full h-full object-cover"
+                              />
+                            </div>
+                          )
+                        })}
+                        {selectedFiles.length > 4 && (
+                          <div className="aspect-square rounded-xl bg-white/10 flex items-center justify-center">
+                            <span className="text-white font-semibold">+{selectedFiles.length - 4} more</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    <div className="text-center">
                       <p className="text-lg font-medium text-white mb-1">
-                        {selectedFile?.name}
+                        {selectedFiles.length === 1 
+                          ? selectedFiles[0]?.name 
+                          : `${selectedFiles.length} images selected`
+                        }
                       </p>
                       <p className="text-sm text-gray-300">
-                        {((selectedFile?.size || 0) / 1024 / 1024).toFixed(2)} MB
+                        {selectedFiles.length === 1 
+                          ? `${((selectedFiles[0]?.size || 0) / 1024 / 1024).toFixed(2)} MB`
+                          : `${selectedFiles.reduce((total, file) => total + file.size, 0) / 1024 / 1024} MB total`
+                        }
                       </p>
                     </div>
                   </div>
@@ -369,10 +457,13 @@ export default function Demo() {
                   <div>
                     <ImageIcon className="h-16 w-16 text-white/60 mx-auto mb-4" />
                     <p className="text-xl font-medium text-white mb-2">
-                      Choose a selfie to upload
+                      Choose images to upload
                     </p>
                     <p className="text-sm text-gray-300">
-                      PNG, JPG, or JPEG up to 10MB
+                      Drag & drop images here or click to select multiple files
+                    </p>
+                    <p className="text-xs text-gray-400">
+                      PNG, JPG, or JPEG up to 10MB each
                     </p>
                   </div>
                 )}
@@ -382,7 +473,7 @@ export default function Demo() {
                     htmlFor="file-upload"
                     className="bg-white/20 backdrop-blur-sm text-white font-semibold px-6 py-3 rounded-xl hover:bg-white/30 transition-all duration-200 cursor-pointer border border-white/20"
                   >
-                    {previewUrl ? 'Change Photo' : 'Choose File'}
+                    {selectedFiles.length > 0 ? 'Change Photos' : 'Choose Files'}
                   </label>
                   
                   <button
@@ -458,18 +549,18 @@ export default function Demo() {
 
               <button
                 onClick={handleGenerate}
-                disabled={!selectedFile || credits === 0 || uploading}
+                disabled={selectedFiles.length === 0 || credits < selectedFiles.length || uploading}
                 className="w-full bg-gradient-to-r from-accent-turquoise to-accent-emerald text-white font-bold px-8 py-4 rounded-xl hover:from-accent-turquoise/90 hover:to-accent-emerald/90 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2 shadow-2xl"
               >
                 {uploading ? (
                   <>
                     <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                    <span>Generating {STYLE_OPTIONS.find(s => s.id === selectedStyle)?.name} Headshot...</span>
+                    <span>Generating {selectedFiles.length > 1 ? `${selectedFiles.length} ` : ''}{STYLE_OPTIONS.find(s => s.id === selectedStyle)?.name} Headshot{selectedFiles.length > 1 ? 's' : ''}...</span>
                   </>
                 ) : (
                   <>
                     <Camera className="h-5 w-5" />
-                    <span>Generate {STYLE_OPTIONS.find(s => s.id === selectedStyle)?.name} Headshot</span>
+                    <span>Generate {selectedFiles.length > 1 ? `${selectedFiles.length} ` : ''}{STYLE_OPTIONS.find(s => s.id === selectedStyle)?.name} Headshot{selectedFiles.length > 1 ? 's' : ''}</span>
                   </>
                 )}
               </button>
@@ -570,6 +661,73 @@ export default function Demo() {
                   <Download className="h-5 w-5" />
                   <span>Download</span>
                 </a>
+              </div>
+              
+              {credits === 0 && (
+                <p className="text-red-400 text-sm">
+                  No demo credits remaining. Sign up for more!
+                </p>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Multiple Generated Images Display */}
+        {generatedImages.length > 0 && (
+          <div id="generated-output" className="bg-white/10 backdrop-blur-sm rounded-3xl p-8 border border-white/20 mb-8">
+            <h2 className="text-3xl font-bold text-white mb-8 text-center">
+              Your {generatedImages.length} {STYLE_OPTIONS.find(s => s.id === selectedStyle)?.name} Headshots
+            </h2>
+            
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 max-w-6xl mx-auto">
+              {generatedImages.map((imageUrl, index) => (
+                <div key={index} className="text-center">
+                  <div className="aspect-square relative rounded-2xl overflow-hidden mb-4 shadow-2xl group">
+                    <img
+                      src={imageUrl}
+                      alt={`Generated headshot ${index + 1}`}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        console.error('Image load error:', e);
+                        e.currentTarget.style.display = 'none';
+                      }}
+                      onLoad={() => {
+                        console.log('Generated image loaded successfully');
+                      }}
+                    />
+                    {/* Overlay with expand button */}
+                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
+                      <button
+                        onClick={() => {
+                          setGeneratedImage(imageUrl)
+                          setIsFullscreen(true)
+                        }}
+                        className="bg-white/20 backdrop-blur-sm text-white p-3 rounded-full hover:bg-white/30 transition-all duration-200"
+                      >
+                        <Maximize2 className="h-6 w-6" />
+                      </button>
+                    </div>
+                  </div>
+                  <p className="text-gray-300 text-sm">
+                    {STYLE_OPTIONS.find(s => s.id === selectedStyle)?.name} style #{index + 1}
+                  </p>
+                </div>
+              ))}
+            </div>
+            
+            <div className="text-center mt-8 space-y-4">
+              <div className="flex gap-4 justify-center flex-wrap">
+                {generatedImages.map((imageUrl, index) => (
+                  <a
+                    key={index}
+                    href={imageUrl}
+                    download={`portraitly-${selectedStyle}-headshot-${index + 1}.jpg`}
+                    className="bg-gradient-to-r from-green-500 to-emerald-500 text-white font-bold px-6 py-3 rounded-xl hover:from-green-600 hover:to-emerald-600 transition-all duration-200 flex items-center space-x-2 shadow-lg"
+                  >
+                    <Download className="h-5 w-5" />
+                    <span>Download #{index + 1}</span>
+                  </a>
+                ))}
               </div>
               
               {credits === 0 && (
