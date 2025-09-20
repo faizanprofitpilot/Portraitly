@@ -15,28 +15,62 @@ export default function LandingPage() {
   useEffect(() => {
     const checkAuth = async () => {
       try {
+        console.log('🔍 Landing page: Checking auth state...')
+        
+        // Check for existing session first
+        const { data: { session } } = await supabase.auth.getSession()
+        console.log('📊 Landing page: Session check result:', { session: !!session, user: !!session?.user })
+        
+        if (session?.user) {
+          console.log('✅ Landing page: User found in session:', session.user.email)
+          setUser(session.user)
+          return
+        }
+        
+        // Fallback to getUser if no session
         const { data: { user } } = await supabase.auth.getUser()
+        console.log('📊 Landing page: User check result:', { user: !!user })
+        
         if (user) {
+          console.log('✅ Landing page: User found via getUser:', user.email)
           setUser(user)
+        } else {
+          console.log('❌ Landing page: No authenticated user found')
         }
       } catch (error) {
-        console.log('Auth check completed')
+        console.log('❌ Landing page: Auth check error:', error)
       }
     }
     
     checkAuth()
+    
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('🔄 Landing page: Auth state changed:', { event, user: !!session?.user })
+      if (session?.user) {
+        setUser(session.user)
+      } else {
+        setUser(null)
+      }
+    })
+    
+    return () => subscription.unsubscribe()
   }, [])
 
 
   const handleGoogleSignIn = async () => {
     setLoading(true)
     try {
+      console.log('🖱️ Button clicked! Current user state:', { user: !!user, email: user?.email })
+      
       // If user is already authenticated, redirect to dashboard
       if (user) {
+        console.log('✅ User already authenticated, redirecting to dashboard')
         window.location.href = '/dashboard'
         return
       }
       
+      console.log('🔐 Starting OAuth flow...')
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
