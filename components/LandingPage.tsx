@@ -40,7 +40,7 @@ export default function LandingPage() {
       } catch (error) {
         console.log('❌ Landing page: Auth check error:', error)
         // If there's a corruption error, clear the session and try again
-        if (error.message && error.message.includes('Cannot create property')) {
+        if (error instanceof Error && error.message && error.message.includes('Cannot create property')) {
           console.log('🧹 Landing page: Detected session corruption, clearing...')
           try {
             await supabase.auth.signOut()
