@@ -11,25 +11,8 @@ export default function LandingPage() {
   const [user, setUser] = useState<any>(null)
   const supabase = createClient()
 
-  // Clear corrupted session data and check auth
+  // Check auth state with error handling
   useEffect(() => {
-    const clearCorruptedSession = async () => {
-      try {
-        // Clear any corrupted Supabase cookies
-        document.cookie.split(";").forEach((c) => {
-          const eqPos = c.indexOf("=");
-          const name = eqPos > -1 ? c.substr(0, eqPos).trim() : c.trim();
-          if (name.includes('supabase') || name.includes('sb-')) {
-            document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=${window.location.hostname}`;
-            document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
-          }
-        });
-        console.log('🧹 Landing page: Cleared corrupted cookies')
-      } catch (error) {
-        console.log('🧹 Landing page: Cookie clearing completed')
-      }
-    }
-    
     const checkAuth = async () => {
       try {
         console.log('🔍 Landing page: Checking auth state...')
@@ -56,16 +39,30 @@ export default function LandingPage() {
         }
       } catch (error) {
         console.log('❌ Landing page: Auth check error:', error)
-        // Clear any corrupted state
+        // If there's a corruption error, clear the session and try again
+        if (error.message && error.message.includes('Cannot create property')) {
+          console.log('🧹 Landing page: Detected session corruption, clearing...')
+          try {
+            await supabase.auth.signOut()
+            // Clear corrupted cookies
+            document.cookie.split(";").forEach((c) => {
+              const eqPos = c.indexOf("=");
+              const name = eqPos > -1 ? c.substr(0, eqPos).trim() : c.trim();
+              if (name.includes('supabase') || name.includes('sb-')) {
+                document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=${window.location.hostname}`;
+                document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
+              }
+            });
+            console.log('🧹 Landing page: Cleared corrupted session')
+          } catch (clearError) {
+            console.log('🧹 Landing page: Session clearing completed')
+          }
+        }
         setUser(null)
       }
     }
     
-    // Clear corrupted session first, then check auth
-    clearCorruptedSession().then(() => {
-      // Wait a moment for cookies to clear
-      setTimeout(checkAuth, 200)
-    })
+    checkAuth()
     
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
