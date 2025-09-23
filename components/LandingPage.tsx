@@ -26,7 +26,9 @@ export default function LandingPage() {
         
         if (response.ok) {
           console.log('✅ Landing page: User can access dashboard - authenticated')
-          setUser({ email: 'authenticated@user.com' }) // Dummy user object
+          // Get the real user email from the server action
+          const { user } = await checkAuthStatus()
+          setUser(user)
         } else {
           console.log('❌ Landing page: Cannot access dashboard - not authenticated')
           setUser(null)
