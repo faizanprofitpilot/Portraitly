@@ -62,6 +62,7 @@ export default function MobileUploadPage() {
         } else {
           const errorData = await response.json();
           console.error('📱 Upload failed:', response.status, errorData);
+          alert(`❌ Upload failed: ${errorData.error || 'Unknown error'}`);
         }
       }
       
