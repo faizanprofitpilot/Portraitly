@@ -29,6 +29,10 @@ export default function LandingPage() {
           // Get the real user email from the server action
           const { user } = await checkAuthStatus()
           setUser(user)
+          
+          // If user is authenticated, redirect to dashboard immediately
+          console.log('🚀 Landing page: Redirecting to dashboard...')
+          window.location.href = '/dashboard'
         } else {
           console.log('❌ Landing page: Cannot access dashboard - not authenticated')
           setUser(null)
