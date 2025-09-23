@@ -5,7 +5,6 @@
 CREATE TABLE IF NOT EXISTS mobile_uploads (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   session_id TEXT NOT NULL,
-  file_url TEXT NOT NULL,
   filename TEXT NOT NULL,
   original_name TEXT NOT NULL,
   file_size INTEGER,
@@ -29,14 +28,14 @@ CREATE POLICY "allow select for authenticated" ON mobile_uploads
   FOR SELECT USING (auth.role() = 'authenticated');
 
 -- Create mobile-uploads storage bucket (run this in Supabase Dashboard > Storage)
--- CREATE BUCKET 'mobile-uploads' WITH PUBLIC = true;
+-- CREATE BUCKET 'mobile-uploads' WITH PUBLIC = false;
 
 -- Storage policies (run this after creating bucket)
 -- CREATE POLICY "Allow authenticated uploads" ON storage.objects
 --   FOR INSERT WITH CHECK (bucket_id = 'mobile-uploads' AND auth.role() = 'authenticated');
 
--- CREATE POLICY "Allow public access" ON storage.objects
---   FOR SELECT USING (bucket_id = 'mobile-uploads');
+-- CREATE POLICY "Allow authenticated downloads" ON storage.objects
+--   FOR SELECT USING (bucket_id = 'mobile-uploads' AND auth.role() = 'authenticated');
 
 -- Automatic cleanup function (delete uploads older than 24h)
 CREATE OR REPLACE FUNCTION cleanup_old_mobile_uploads()

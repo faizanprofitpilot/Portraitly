@@ -50,17 +50,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Upload failed' }, { status: 500 });
     }
 
-    // Get public URL
-    const { data: urlData } = supabase.storage
-      .from('mobile-uploads')
-      .getPublicUrl(filename);
-
-    // Store metadata in database
+    // Store metadata in database (without public URL)
     const { error: dbError } = await supabase
       .from('mobile_uploads')
       .insert({
         session_id: sessionId,
-        file_url: urlData.publicUrl,
         filename: filename,
         original_name: file.name,
         file_size: file.size,
@@ -77,7 +71,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       filename: filename,
-      fileUrl: urlData.publicUrl,
       originalName: file.name,
       size: file.size,
       type: file.type,
