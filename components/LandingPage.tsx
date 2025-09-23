@@ -147,8 +147,8 @@ export default function LandingPage() {
                     <div className="relative">
                       <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20">
                         <BeforeAfterSlider 
-                          beforeImage="/images/before.jpeg"
-                          afterImage="/images/after.png"
+                          beforeImage="/images/after.png"
+                          afterImage="/images/before.jpeg"
                         />
 
                         <div className="mt-6 text-center">
