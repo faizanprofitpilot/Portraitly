@@ -13,7 +13,7 @@ export default async function Home() {
       const { data: userData, error } = await supabase
         .from('users')
         .select('id')
-        .eq('auth_user_id', user.id)
+        .eq('email', user.email)
         .single()
       
       console.log('📊 Database check result:', { userData, error })
@@ -23,14 +23,32 @@ export default async function Home() {
         console.log('✅ User found in database, redirecting to dashboard')
         redirect('/dashboard')
       }
-      // If no database record, clear the auth session and show landing page
+      // If no database record, create it directly
       else {
-        console.log('❌ User not found in database, clearing session')
-        await supabase.auth.signOut()
+        console.log('🔧 User not found in database, creating user record...')
+        
+        // Create user record directly
+        const { data: newUser, error: insertError } = await supabase
+          .from('users')
+          .insert({
+            email: user.email,
+            credits: 10,
+            plan: 'free'
+          })
+          .select('id')
+          .single()
+
+        if (newUser && !insertError) {
+          console.log('✅ User record created, redirecting to dashboard')
+          redirect('/dashboard')
+        } else {
+          console.log('❌ Failed to create user record:', insertError)
+          await supabase.auth.signOut()
+        }
       }
     } catch (error) {
-      // If there's any error checking the database, clear auth and show landing page
-      console.error('❌ Error checking user in database:', error)
+      // If there's any error, clear auth and show landing page
+      console.error('❌ Error checking/creating user in database:', error)
       await supabase.auth.signOut()
     }
   }
