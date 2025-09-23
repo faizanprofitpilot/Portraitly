@@ -18,6 +18,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Store upload info in database
+    console.log('💾 Storing mobile upload:', { sessionId, filename, originalName, fileSize, fileType });
+    
     const { error } = await supabase
       .from('mobile_uploads')
       .insert({
@@ -29,9 +31,15 @@ export async function POST(request: NextRequest) {
       });
 
     if (error) {
-      console.error('Database error storing mobile upload:', error);
-      return NextResponse.json({ error: 'Failed to store upload' }, { status: 500 });
+      console.error('❌ Database error storing mobile upload:', error);
+      console.error('❌ Error details:', JSON.stringify(error, null, 2));
+      return NextResponse.json({ 
+        error: 'Failed to store upload', 
+        details: error.message 
+      }, { status: 500 });
     }
+
+    console.log('✅ Mobile upload stored successfully');
 
     return NextResponse.json({ success: true });
   } catch (error) {
@@ -50,16 +58,24 @@ export async function GET(request: NextRequest) {
     }
 
     // Get uploads from database
+    console.log('🔍 Querying mobile_uploads table for sessionId:', sessionId);
+    
     const { data: uploads, error } = await supabase
       .from('mobile_uploads')
-      .select('filename, original_name, file_size, file_type, created_at')
+      .select('*')
       .eq('session_id', sessionId)
       .order('created_at', { ascending: true });
 
     if (error) {
-      console.error('Database error retrieving mobile uploads:', error);
-      return NextResponse.json({ error: 'Failed to retrieve uploads' }, { status: 500 });
+      console.error('❌ Database error retrieving mobile uploads:', error);
+      console.error('❌ Error details:', JSON.stringify(error, null, 2));
+      return NextResponse.json({ 
+        error: 'Failed to retrieve uploads', 
+        details: error.message 
+      }, { status: 500 });
     }
+
+    console.log('✅ Found uploads:', uploads);
 
     // Delete the uploads after retrieving (one-time use)
     await supabase
