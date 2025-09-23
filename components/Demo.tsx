@@ -32,6 +32,7 @@ export default function Demo() {
   const [userData, setUserData] = useState<any>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isDragOver, setIsDragOver] = useState(false)
+  const [mobileUploadReceived, setMobileUploadReceived] = useState(false)
 
   const supabase = createClient()
 
@@ -74,7 +75,7 @@ export default function Demo() {
 
   // Poll for mobile uploads whenever we have a session ID
   useEffect(() => {
-    if (!sessionId) return
+    if (!sessionId || mobileUploadReceived) return
 
     const pollForUploads = async () => {
       try {
@@ -95,21 +96,38 @@ export default function Demo() {
           // Use the image URL directly instead of converting to File object
           console.log('✅ Mobile upload loaded successfully:', uploadedFile.original_name)
           
-          // Create a mock File object for compatibility with correct size
-          const mockFile = new File([], uploadedFile.original_name, { 
-            type: uploadedFile.file_type || 'image/jpeg' 
-          })
-          // Add the file size to the mock file
-          Object.defineProperty(mockFile, 'size', {
-            value: uploadedFile.file_size || 0,
-            writable: false
-          })
-          
-          setSelectedFiles([mockFile]) // Set as array for new multi-file UI
-          setSelectedFile(mockFile) // Keep for backward compatibility
-          setPreviewUrl(imageUrl)
-          setOriginalImageUrl(imageUrl)
-          setShowMobileUpload(false) // Close mobile upload modal
+          // Create a proper File object by fetching the actual file data
+          fetch(imageUrl)
+            .then(response => response.blob())
+            .then(blob => {
+              const file = new File([blob], uploadedFile.original_name, { 
+                type: uploadedFile.file_type || 'image/jpeg' 
+              })
+              
+              setSelectedFiles([file])
+              setSelectedFile(file)
+              setPreviewUrl(imageUrl)
+              setOriginalImageUrl(imageUrl)
+              setShowMobileUpload(false)
+              setMobileUploadReceived(true) // Stop polling
+            })
+            .catch(error => {
+              console.error('Error loading mobile upload file:', error)
+              // Fallback to mock file if blob fetch fails
+              const mockFile = new File([], uploadedFile.original_name, { 
+                type: uploadedFile.file_type || 'image/jpeg' 
+              })
+              Object.defineProperty(mockFile, 'size', {
+                value: uploadedFile.file_size || 0,
+                writable: false
+              })
+              setSelectedFiles([mockFile])
+              setSelectedFile(mockFile)
+              setPreviewUrl(imageUrl)
+              setOriginalImageUrl(imageUrl)
+              setShowMobileUpload(false)
+              setMobileUploadReceived(true) // Stop polling
+            })
         }
       } catch (error) {
         console.error('Error polling for uploads:', error)
@@ -118,7 +136,7 @@ export default function Demo() {
 
     const interval = setInterval(pollForUploads, 2000)
     return () => clearInterval(interval)
-  }, [sessionId])
+  }, [sessionId, mobileUploadReceived])
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || [])
@@ -482,7 +500,10 @@ export default function Demo() {
                   </label>
                   
                   <button
-                    onClick={() => setShowMobileUpload(true)}
+                    onClick={() => {
+                      setShowMobileUpload(true)
+                      setMobileUploadReceived(false) // Reset for new upload
+                    }}
                     className="bg-gradient-to-r from-accent-turquoise to-accent-emerald text-white font-semibold px-6 py-3 rounded-xl hover:from-accent-turquoise/90 hover:to-accent-emerald/90 transition-all duration-200 flex items-center gap-2 shadow-lg"
                   >
                     <Smartphone className="h-4 w-4" />
