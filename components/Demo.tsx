@@ -103,7 +103,8 @@ export default function Demo() {
             .then(blob => {
               const file = new File([blob], uploadedFile.original_name, { type: uploadedFile.file_type || 'image/jpeg' })
               console.log('✅ Mobile upload loaded successfully:', file.name)
-              setSelectedFile(file)
+              setSelectedFiles([file]) // Set as array for new multi-file UI
+              setSelectedFile(file) // Keep for backward compatibility
               setPreviewUrl(imageUrl)
               setOriginalImageUrl(imageUrl)
               setShowMobileUpload(false) // Close mobile upload modal
