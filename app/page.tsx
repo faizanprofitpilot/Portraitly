@@ -1,19 +1,19 @@
-import { createClient } from '@/lib/supabase/server'
+import { createClient } from '@/lib/supabase-server'
 import { redirect } from 'next/navigation'
 import LandingPage from '@/components/LandingPage'
 
 export default async function Home() {
   const supabase = createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const { data: { session } } = await supabase.auth.getSession()
 
   // Only redirect if user exists AND has a database record
-  if (user) {
+  if (session?.user) {
     try {
-      console.log('🔍 Checking user in database:', user.id, user.email)
+      console.log('🔍 Checking user in database:', session.user.id, session.user.email)
       const { data: userData, error } = await supabase
         .from('users')
         .select('id')
-        .eq('email', user.email)
+        .eq('email', session.user.email)
         .single()
       
       console.log('📊 Database check result:', { userData, error })
@@ -31,7 +31,7 @@ export default async function Home() {
         const { data: newUser, error: insertError } = await supabase
           .from('users')
           .insert({
-            email: user.email,
+            email: session.user.email,
             credits: 10,
             plan: 'free'
           })

@@ -54,9 +54,8 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  // Refresh session if expired - this is the key fix
+  const { data: { session } } = await supabase.auth.getSession()
 
   // Protected routes that require authentication
   const protectedRoutes = ['/dashboard', '/account']
@@ -65,7 +64,7 @@ export async function middleware(request: NextRequest) {
   )
 
   // If accessing protected route without auth, redirect to home
-  if (isProtectedRoute && !user) {
+  if (isProtectedRoute && !session?.user) {
     return NextResponse.redirect(new URL('/', request.url))
   }
 

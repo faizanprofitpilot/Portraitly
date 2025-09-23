@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { createClient } from '@/lib/supabase-server'
 import { redirect } from 'next/navigation'
 import Demo from '@/components/Demo'
 
@@ -6,20 +6,20 @@ export default async function DashboardPage() {
   console.log('🎯 Dashboard page rendering')
   
   const supabase = createClient()
-  const { data: { user }, error } = await supabase.auth.getUser()
+  const { data: { session } } = await supabase.auth.getSession()
   
-  if (!user || error) {
-    console.log('❌ Dashboard: No authenticated user, redirecting to home')
+  if (!session?.user) {
+    console.log('❌ Dashboard: No authenticated session, redirecting to home')
     redirect('/')
   }
   
   // Check if user has a database record (same logic as home page)
   try {
-    console.log('🔍 Dashboard: Checking user in database:', user.id, user.email)
+    console.log('🔍 Dashboard: Checking user in database:', session.user.id, session.user.email)
       const { data: userData, error: dbError } = await supabase
         .from('users')
         .select('id')
-        .eq('email', user.email)
+        .eq('email', session.user.email)
         .single()
     
     console.log('📊 Dashboard: Database check result:', { userData, dbError })
@@ -31,7 +31,7 @@ export default async function DashboardPage() {
       const { data: newUser, error: insertError } = await supabase
         .from('users')
         .insert({
-          email: user.email,
+          email: session.user.email,
           credits: 10,
           plan: 'free'
         })
@@ -46,7 +46,7 @@ export default async function DashboardPage() {
       console.log('✅ Dashboard: User record created')
     }
     
-    console.log('✅ Dashboard: User authenticated and has database record:', user.email)
+    console.log('✅ Dashboard: User authenticated and has database record:', session.user.email)
     return <Demo />
   } catch (error) {
     console.error('❌ Dashboard: Error checking user in database:', error)

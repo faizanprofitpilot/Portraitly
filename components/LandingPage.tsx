@@ -1,8 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { createClient } from '@/lib/supabase'
-import { checkAuthStatus } from '@/lib/auth-actions'
+import { createClient } from '@/lib/supabase-browser'
 import { Camera, ArrowRight, CheckCircle, Star, Shield, Zap, Users, Download, Sparkles, Play, LogOut, Crown, Award, Globe } from 'lucide-react'
 import BackgroundPattern from './BackgroundPattern'
 import BeforeAfterSlider from './BeforeAfterSlider'
@@ -12,17 +11,17 @@ export default function LandingPage() {
   const [user, setUser] = useState<any>(null)
   const supabase = createClient()
 
-  // Check auth state using server-side validation
+  // Check auth state using proper session handling
   useEffect(() => {
     const checkAuth = async () => {
       try {
         console.log('🔍 Landing page: Checking auth state...')
         
-        const { user, error } = await checkAuthStatus()
+        const { data: { session } } = await supabase.auth.getSession()
         
-        if (user && !error) {
-          console.log('✅ Landing page: User authenticated:', user.email)
-          setUser(user)
+        if (session?.user) {
+          console.log('✅ Landing page: User authenticated:', session.user.email)
+          setUser(session.user)
         } else {
           console.log('❌ Landing page: No authenticated user found')
           setUser(null)
@@ -34,6 +33,18 @@ export default function LandingPage() {
     }
     
     checkAuth()
+    
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('🔄 Landing page: Auth state changed:', { event, user: !!session?.user })
+      if (session?.user) {
+        setUser(session.user)
+      } else {
+        setUser(null)
+      }
+    })
+    
+    return () => subscription.unsubscribe()
   }, [])
 
 
