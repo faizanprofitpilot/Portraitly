@@ -19,23 +19,23 @@ ALTER TABLE mobile_uploads ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "allow insert for authenticated" ON mobile_uploads;
 DROP POLICY IF EXISTS "allow select for authenticated" ON mobile_uploads;
 
--- Allow authenticated users to insert mobile uploads
-CREATE POLICY "allow insert for authenticated" ON mobile_uploads
-  FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+-- Allow anyone to insert mobile uploads (they're session-based, not user-based)
+CREATE POLICY "allow insert for anyone" ON mobile_uploads
+  FOR INSERT WITH CHECK (true);
 
--- Allow authenticated users to select mobile uploads
-CREATE POLICY "allow select for authenticated" ON mobile_uploads
-  FOR SELECT USING (auth.role() = 'authenticated');
+-- Allow anyone to select mobile uploads by session_id
+CREATE POLICY "allow select for anyone" ON mobile_uploads
+  FOR SELECT USING (true);
 
 -- Create mobile-uploads storage bucket (run this in Supabase Dashboard > Storage)
 -- CREATE BUCKET 'mobile-uploads' WITH PUBLIC = false;
 
 -- Storage policies (run this after creating bucket)
--- CREATE POLICY "Allow authenticated uploads" ON storage.objects
---   FOR INSERT WITH CHECK (bucket_id = 'mobile-uploads' AND auth.role() = 'authenticated');
+-- CREATE POLICY "Allow anyone to upload" ON storage.objects
+--   FOR INSERT WITH CHECK (bucket_id = 'mobile-uploads');
 
--- CREATE POLICY "Allow authenticated downloads" ON storage.objects
---   FOR SELECT USING (bucket_id = 'mobile-uploads' AND auth.role() = 'authenticated');
+-- CREATE POLICY "Allow anyone to download" ON storage.objects
+--   FOR SELECT USING (bucket_id = 'mobile-uploads');
 
 -- Automatic cleanup function (delete uploads older than 24h)
 CREATE OR REPLACE FUNCTION cleanup_old_mobile_uploads()
