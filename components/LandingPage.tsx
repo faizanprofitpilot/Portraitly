@@ -12,25 +12,19 @@ export default function LandingPage() {
   const [user, setUser] = useState<any>(null)
   const supabase = createClient()
 
-  // Simple auth check - just check if user can access dashboard
+  // Check auth state using server-side validation
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        console.log('🔍 Landing page: Checking if user can access dashboard...')
+        console.log('🔍 Landing page: Checking auth state...')
         
-        // Try to fetch dashboard - if successful, user is authenticated
-        const response = await fetch('/dashboard', { 
-          method: 'HEAD',
-          credentials: 'include'
-        })
+        const { user, error } = await checkAuthStatus()
         
-        if (response.ok) {
-          console.log('✅ Landing page: User can access dashboard - authenticated')
-          // Get the real user email from the server action
-          const { user } = await checkAuthStatus()
+        if (user && !error) {
+          console.log('✅ Landing page: User authenticated:', user.email)
           setUser(user)
         } else {
-          console.log('❌ Landing page: Cannot access dashboard - not authenticated')
+          console.log('❌ Landing page: No authenticated user found')
           setUser(null)
         }
       } catch (error) {
