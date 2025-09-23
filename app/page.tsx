@@ -3,8 +3,11 @@ import { redirect } from 'next/navigation'
 import LandingPage from '@/components/LandingPage'
 
 export default async function Home() {
+  console.log('🏠 Home page rendering')
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
+  
+  console.log('🏠 Home page: User check result:', { user: !!user, email: user?.email })
 
   // Only redirect if user exists AND has a database record
   if (user) {
@@ -53,5 +56,6 @@ export default async function Home() {
     }
   }
 
+  console.log('🏠 Home page: No authenticated user, showing landing page')
   return <LandingPage />
 }
