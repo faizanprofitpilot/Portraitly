@@ -24,10 +24,26 @@ export default async function DashboardPage() {
     
     console.log('📊 Dashboard: Database check result:', { userData, dbError })
     
-    // If no database record, redirect to home (which will create the record)
+    // If no database record, create it
     if (!userData || dbError) {
-      console.log('❌ Dashboard: User not found in database, redirecting to home')
-      redirect('/')
+      console.log('🔧 Dashboard: User not found in database, creating record...')
+      
+      const { data: newUser, error: insertError } = await supabase
+        .from('users')
+        .insert({
+          email: user.email,
+          credits: 10,
+          plan: 'free'
+        })
+        .select('id')
+        .single()
+
+      if (!newUser || insertError) {
+        console.log('❌ Dashboard: Failed to create user record:', insertError)
+        redirect('/')
+      }
+      
+      console.log('✅ Dashboard: User record created')
     }
     
     console.log('✅ Dashboard: User authenticated and has database record:', user.email)
