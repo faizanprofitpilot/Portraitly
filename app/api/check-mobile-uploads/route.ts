@@ -15,14 +15,20 @@ export async function GET(request: NextRequest) {
 
     // Read the uploads directory
     const uploadsDir = join(process.cwd(), 'public', 'uploads');
-    const files = await readdir(uploadsDir);
     
-    // Filter files that match our session ID
-    const sessionFiles = files.filter(file => 
-      file.startsWith(`mobile_${sessionId}_`)
-    );
+    try {
+      const files = await readdir(uploadsDir);
+      
+      // Filter files that match our session ID
+      const sessionFiles = files.filter(file => 
+        file.startsWith(`mobile_${sessionId}_`)
+      );
 
-    return NextResponse.json({ files: sessionFiles });
+      return NextResponse.json({ files: sessionFiles });
+    } catch (dirError) {
+      // Directory doesn't exist, return empty array
+      return NextResponse.json({ files: [] });
+    }
   } catch (error) {
     console.error('Error checking mobile uploads:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
