@@ -90,6 +90,7 @@ export default function Demo() {
           const imageUrl = uploadedFile.file_url
           
           console.log('📸 Found mobile upload:', uploadedFile)
+          console.log('📸 Image URL:', imageUrl)
           
           // Create a File object from the uploaded image
           fetch(imageUrl)
