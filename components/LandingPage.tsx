@@ -66,9 +66,12 @@ export default function LandingPage() {
             </span>
           </div>
           <div className="flex items-center space-x-6">
-            <a href="/pricing" className="text-white/80 hover:text-white transition-colors font-medium">
+            <button 
+              onClick={() => document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' })}
+              className="text-white/80 hover:text-white transition-colors font-medium"
+            >
               Pricing
-            </a>
+            </button>
             <button
               onClick={handleGoogleSignIn}
               disabled={loading}
@@ -270,7 +273,7 @@ export default function LandingPage() {
       </section>
 
       {/* Pricing Preview */}
-      <section className="px-6 py-20">
+      <section id="pricing" className="px-6 py-20">
         <div className="max-w-4xl mx-auto text-center">
           <h2 className="text-4xl font-bold text-white mb-8">
             Simple, Transparent Pricing
@@ -380,7 +383,7 @@ export default function LandingPage() {
               <h3 className="text-white font-semibold mb-4">Product</h3>
               <ul className="space-y-2">
                 <li><a href="/dashboard" className="text-gray-300 hover:text-white transition-colors">Dashboard</a></li>
-                <li><a href="/pricing" className="text-gray-300 hover:text-white transition-colors">Pricing</a></li>
+                <li><button onClick={() => document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' })} className="text-gray-300 hover:text-white transition-colors">Pricing</button></li>
                 <li><a href="/account" className="text-gray-300 hover:text-white transition-colors">Account</a></li>
               </ul>
             </div>
