@@ -8,47 +8,14 @@ import BeforeAfterSlider from './BeforeAfterSlider'
 
 export default function LandingPage() {
   const [loading, setLoading] = useState(false)
-  const [user, setUser] = useState<any>(null)
-  const supabase = createClient()
-
-  // Check auth state using proper session handling
-  useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        console.log('🔍 Landing page: Checking auth state...')
-        
-        const { data: { session } } = await supabase.auth.getSession()
-        
-        if (session?.user) {
-          console.log('✅ Landing page: User authenticated:', session.user.email)
-          setUser(session.user)
-        } else {
-          console.log('❌ Landing page: No authenticated user found')
-          setUser(null)
-        }
-      } catch (error) {
-        console.log('❌ Landing page: Auth check failed:', error)
-        setUser(null)
-      }
-    }
-    
-    checkAuth()
-  }, [])
 
 
   const handleGoogleSignIn = async () => {
     setLoading(true)
     try {
-      console.log('🖱️ Button clicked! Current user state:', { user: !!user, email: user?.email })
-      
-      // If user is already authenticated, redirect to dashboard
-      if (user) {
-        console.log('✅ User already authenticated, redirecting to dashboard')
-        window.location.href = '/dashboard'
-        return
-      }
-      
       console.log('🔐 Starting OAuth flow...')
+      
+      const supabase = createClient()
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
@@ -72,8 +39,8 @@ export default function LandingPage() {
     }
   }
 
-  // Debug log for render
-  console.log('🎨 Landing page render - user state:', { user: !!user, email: user?.email })
+  // Landing page render
+  console.log('🎨 Landing page render')
   
   return (
     <div className="min-h-screen bg-premium-gradient relative overflow-hidden">
@@ -111,7 +78,7 @@ export default function LandingPage() {
                 <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-magical-deep"></div>
               ) : (
                 <>
-                  <span>{user ? `Go to Dashboard (${user.email})` : 'Try for Free'}</span>
+                  <span>Try for Free</span>
                   <ArrowRight className="h-5 w-5" />
                 </>
               )}
@@ -149,7 +116,7 @@ export default function LandingPage() {
                   ) : (
                     <>
                       <Crown className="h-5 w-5" />
-                      <span>{user ? `Go to Dashboard (${user.email})` : 'Try for Free'}</span>
+                      <span>Try for Free</span>
                       <ArrowRight className="h-5 w-5" />
                     </>
                   )}
@@ -377,7 +344,7 @@ export default function LandingPage() {
               ) : (
                 <>
                   <Sparkles className="h-5 w-5" />
-                  <span>{user ? `Go to Dashboard (${user.email})` : 'Start Your Free Trial'}</span>
+                  <span>Start Your Free Trial</span>
                 </>
               )}
             </button>
