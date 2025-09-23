@@ -72,20 +72,24 @@ export default function Demo() {
     fetchUserData()
   }, [])
 
-  // Poll for mobile uploads only when mobile upload modal is open
+  // Poll for mobile uploads whenever we have a session ID
   useEffect(() => {
-    if (!sessionId || !showMobileUpload) return
+    if (!sessionId) return
 
     const pollForUploads = async () => {
       try {
-        // Check for any mobile upload files with our session ID
+        console.log('📱 Polling for mobile uploads, session:', sessionId)
         const response = await fetch(`/api/mobile-uploads?sessionId=${sessionId}`)
         const data = await response.json()
+        
+        console.log('📱 Polling response:', data)
         
         if (data.uploads && data.uploads.length > 0) {
           // Process the first uploaded file
           const uploadedFile = data.uploads[0]
           const imageUrl = uploadedFile.file_url
+          
+          console.log('📸 Found mobile upload:', uploadedFile)
           
           // Create a File object from the uploaded image
           fetch(imageUrl)
@@ -97,6 +101,7 @@ export default function Demo() {
             })
             .then(blob => {
               const file = new File([blob], uploadedFile.original_name, { type: uploadedFile.file_type || 'image/jpeg' })
+              console.log('✅ Mobile upload loaded successfully:', file.name)
               setSelectedFile(file)
               setPreviewUrl(imageUrl)
               setOriginalImageUrl(imageUrl)
@@ -113,7 +118,7 @@ export default function Demo() {
 
     const interval = setInterval(pollForUploads, 2000)
     return () => clearInterval(interval)
-  }, [sessionId, showMobileUpload])
+  }, [sessionId])
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || [])
