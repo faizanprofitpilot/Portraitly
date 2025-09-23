@@ -33,18 +33,6 @@ export default function LandingPage() {
     }
     
     checkAuth()
-    
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log('🔄 Landing page: Auth state changed:', { event, user: !!session?.user })
-      if (session?.user) {
-        setUser(session.user)
-      } else {
-        setUser(null)
-      }
-    })
-    
-    return () => subscription.unsubscribe()
   }, [])
 
 
