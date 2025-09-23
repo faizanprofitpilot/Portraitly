@@ -1,84 +1,103 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
 
 export const dynamic = 'force-dynamic';
 
-const supabase = createClient(
+const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  process.env.SUPABASE_SERVICE_ROLE_KEY! // IMPORTANT: service role, not anon
 );
 
-export async function POST(request: NextRequest) {
+export async function POST(req: Request) {
   try {
-    const formData = await request.formData();
-    const file: File | null = formData.get('file') as File;
-    const sessionId = formData.get('sessionId') as string;
+    const formData = await req.formData();
+    const file = formData.get("file") as File;
+    const sessionId = formData.get("sessionId") as string;
 
-    // Validation
-    if (!file) {
-      return NextResponse.json({ error: 'No file provided' }, { status: 400 });
-    }
+    console.log('📱 Mobile upload request:', { 
+      hasFile: !!file, 
+      fileName: file?.name, 
+      fileSize: file?.size,
+      sessionId 
+    });
 
-    if (!sessionId) {
-      return NextResponse.json({ error: 'No session ID provided' }, { status: 400 });
+    if (!file || !sessionId) {
+      console.error('❌ Missing required fields:', { hasFile: !!file, hasSessionId: !!sessionId });
+      return NextResponse.json(
+        { error: "Missing file or sessionId" },
+        { status: 400 }
+      );
     }
 
     if (!file.type.startsWith('image/')) {
+      console.error('❌ Invalid file type:', file.type);
       return NextResponse.json({ error: 'File must be an image' }, { status: 400 });
     }
 
-    // Generate unique filename
-    const timestamp = Date.now();
-    const randomString = Math.random().toString(36).substring(2, 8);
-    const fileExtension = file.name.split('.').pop() || 'jpg';
-    const filename = `${sessionId}_${timestamp}_${randomString}.${fileExtension}`;
+    // Generate unique file name
+    const fileExt = file.name.split(".").pop();
+    const fileName = `${sessionId}_${Date.now()}.${fileExt}`;
+    const filePath = `${sessionId}/${fileName}`;
 
-    // Convert file to buffer
-    const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
+    console.log('📤 Uploading to storage:', filePath);
 
     // Upload to Supabase Storage
-    const { data: uploadData, error: uploadError } = await supabase.storage
-      .from('mobile-uploads')
-      .upload(filename, buffer, {
-        contentType: file.type,
-        upsert: false
+    const { error: storageError } = await supabaseAdmin.storage
+      .from("mobile-uploads")
+      .upload(filePath, file, {
+        cacheControl: "3600",
+        upsert: false,
       });
 
-    if (uploadError) {
-      console.error('Supabase upload error:', uploadError);
-      return NextResponse.json({ error: 'Upload failed' }, { status: 500 });
+    if (storageError) {
+      console.error("❌ Storage upload failed:", storageError.message);
+      return NextResponse.json(
+        { error: storageError.message },
+        { status: 500 }
+      );
     }
 
-    // Store metadata in database (without public URL)
-    const { error: dbError } = await supabase
-      .from('mobile_uploads')
-      .insert({
-        session_id: sessionId,
-        filename: filename,
+    console.log('✅ Storage upload successful');
+
+    // Get public URL
+    const { data: publicUrl } = supabaseAdmin.storage
+      .from("mobile-uploads")
+      .getPublicUrl(filePath);
+
+    console.log('📝 Inserting metadata into database');
+
+    // Insert metadata into DB
+    const { error: dbError } = await supabaseAdmin
+      .from("mobile_uploads")
+      .insert([{ 
+        session_id: sessionId, 
+        filename: fileName,
         original_name: file.name,
         file_size: file.size,
         file_type: file.type
-      });
+      }]);
 
     if (dbError) {
-      console.error('Database insert error:', dbError);
-      // Try to clean up the uploaded file
-      await supabase.storage.from('mobile-uploads').remove([filename]);
-      return NextResponse.json({ error: 'Failed to store metadata' }, { status: 500 });
+      console.error("❌ DB insert failed:", dbError.message);
+      return NextResponse.json({ error: dbError.message }, { status: 500 });
     }
+
+    console.log('✅ Database insert successful');
 
     return NextResponse.json({
       success: true,
-      filename: filename,
+      filename: fileName,
+      fileUrl: publicUrl.publicUrl,
       originalName: file.name,
       size: file.size,
       type: file.type,
-      sessionId: sessionId
+      sessionId,
     });
-
-  } catch (error) {
-    console.error('Mobile upload error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  } catch (err: any) {
+    console.error("❌ Unexpected error:", err.message);
+    return NextResponse.json(
+      { error: err.message || "Unexpected server error" },
+      { status: 500 }
+    );
   }
 }
