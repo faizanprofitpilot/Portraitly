@@ -92,26 +92,17 @@ export default function Demo() {
           console.log('📸 Found mobile upload:', uploadedFile)
           console.log('📸 Image URL:', imageUrl)
           
-          // Create a File object from the uploaded image
-          fetch(imageUrl)
-            .then(response => {
-              if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`)
-              }
-              return response.blob()
-            })
-            .then(blob => {
-              const file = new File([blob], uploadedFile.original_name, { type: uploadedFile.file_type || 'image/jpeg' })
-              console.log('✅ Mobile upload loaded successfully:', file.name)
-              setSelectedFiles([file]) // Set as array for new multi-file UI
-              setSelectedFile(file) // Keep for backward compatibility
-              setPreviewUrl(imageUrl)
-              setOriginalImageUrl(imageUrl)
-              setShowMobileUpload(false) // Close mobile upload modal
-            })
-            .catch(error => {
-              console.error('Error loading mobile upload:', error)
-            })
+          // Use the image URL directly instead of converting to File object
+          console.log('✅ Mobile upload loaded successfully:', uploadedFile.original_name)
+          
+          // Create a mock File object for compatibility
+          const mockFile = new File([], uploadedFile.original_name, { type: uploadedFile.file_type || 'image/jpeg' })
+          
+          setSelectedFiles([mockFile]) // Set as array for new multi-file UI
+          setSelectedFile(mockFile) // Keep for backward compatibility
+          setPreviewUrl(imageUrl)
+          setOriginalImageUrl(imageUrl)
+          setShowMobileUpload(false) // Close mobile upload modal
         }
       } catch (error) {
         console.error('Error polling for uploads:', error)
