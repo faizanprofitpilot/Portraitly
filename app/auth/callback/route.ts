@@ -44,8 +44,8 @@ export async function GET(request: NextRequest) {
         return NextResponse.redirect(new URL('/?error=no_session', requestUrl.origin))
       }
 
-      // Redirect to dashboard
-      return NextResponse.redirect(new URL('/dashboard', requestUrl.origin))
+      // Redirect to home page to create database record first
+      return NextResponse.redirect(new URL('/', requestUrl.origin))
       
     } catch (error) {
       console.error('Unexpected error:', error)
