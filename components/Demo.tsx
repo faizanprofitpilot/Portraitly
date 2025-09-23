@@ -79,13 +79,13 @@ export default function Demo() {
     const pollForUploads = async () => {
       try {
         // Check for any mobile upload files with our session ID
-        const response = await fetch(`/api/check-mobile-uploads?sessionId=${sessionId}`)
+        const response = await fetch(`/api/mobile-uploads?sessionId=${sessionId}`)
         const data = await response.json()
         
-        if (data.files && data.files.length > 0) {
+        if (data.uploads && data.uploads.length > 0) {
           // Process the first uploaded file
-          const uploadedFile = data.files[0]
-          const imageUrl = `/uploads/${uploadedFile}`
+          const uploadedFile = data.uploads[0]
+          const imageUrl = uploadedFile.file_url
           
           // Create a File object from the uploaded image
           fetch(imageUrl)
@@ -96,7 +96,7 @@ export default function Demo() {
               return response.blob()
             })
             .then(blob => {
-              const file = new File([blob], uploadedFile, { type: 'image/jpeg' })
+              const file = new File([blob], uploadedFile.original_name, { type: uploadedFile.file_type || 'image/jpeg' })
               setSelectedFile(file)
               setPreviewUrl(imageUrl)
               setOriginalImageUrl(imageUrl)

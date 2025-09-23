@@ -57,7 +57,7 @@ export default function MobileUploadPage() {
           console.log('📱 Mobile upload successful:', result);
           setUploadedFiles(prev => [...prev, result.filename]);
           
-          // Success - file is now available at /uploads/{filename}
+          // Success - file is now available in Supabase Storage
           alert(`✅ File uploaded successfully!\nYour photo is now available on the desktop.`);
         } else {
           const errorData = await response.json();

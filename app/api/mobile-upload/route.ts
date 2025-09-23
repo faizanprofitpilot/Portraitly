@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { writeFile, mkdir } from 'fs/promises';
-import { join } from 'path';
-import { existsSync } from 'fs';
+import { createClient } from '@supabase/supabase-js';
 
 export const dynamic = 'force-dynamic';
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
 
 export async function POST(request: NextRequest) {
   try {
@@ -24,29 +27,57 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'File must be an image' }, { status: 400 });
     }
 
-    // Create uploads directory if it doesn't exist
-    const uploadsDir = join(process.cwd(), 'public', 'uploads');
-    if (!existsSync(uploadsDir)) {
-      await mkdir(uploadsDir, { recursive: true });
-    }
-
     // Generate unique filename
     const timestamp = Date.now();
     const randomString = Math.random().toString(36).substring(2, 8);
     const fileExtension = file.name.split('.').pop() || 'jpg';
-    const filename = `mobile_${sessionId}_${timestamp}_${randomString}.${fileExtension}`;
+    const filename = `${sessionId}_${timestamp}_${randomString}.${fileExtension}`;
 
     // Convert file to buffer
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
-    // Save file
-    const filepath = join(uploadsDir, filename);
-    await writeFile(filepath, buffer);
+    // Upload to Supabase Storage
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from('mobile-uploads')
+      .upload(filename, buffer, {
+        contentType: file.type,
+        upsert: false
+      });
+
+    if (uploadError) {
+      console.error('Supabase upload error:', uploadError);
+      return NextResponse.json({ error: 'Upload failed' }, { status: 500 });
+    }
+
+    // Get public URL
+    const { data: urlData } = supabase.storage
+      .from('mobile-uploads')
+      .getPublicUrl(filename);
+
+    // Store metadata in database
+    const { error: dbError } = await supabase
+      .from('mobile_uploads')
+      .insert({
+        session_id: sessionId,
+        file_url: urlData.publicUrl,
+        filename: filename,
+        original_name: file.name,
+        file_size: file.size,
+        file_type: file.type
+      });
+
+    if (dbError) {
+      console.error('Database insert error:', dbError);
+      // Try to clean up the uploaded file
+      await supabase.storage.from('mobile-uploads').remove([filename]);
+      return NextResponse.json({ error: 'Failed to store metadata' }, { status: 500 });
+    }
 
     return NextResponse.json({
       success: true,
       filename: filename,
+      fileUrl: urlData.publicUrl,
       originalName: file.name,
       size: file.size,
       type: file.type,
