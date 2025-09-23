@@ -95,8 +95,15 @@ export default function Demo() {
           // Use the image URL directly instead of converting to File object
           console.log('✅ Mobile upload loaded successfully:', uploadedFile.original_name)
           
-          // Create a mock File object for compatibility
-          const mockFile = new File([], uploadedFile.original_name, { type: uploadedFile.file_type || 'image/jpeg' })
+          // Create a mock File object for compatibility with correct size
+          const mockFile = new File([], uploadedFile.original_name, { 
+            type: uploadedFile.file_type || 'image/jpeg' 
+          })
+          // Add the file size to the mock file
+          Object.defineProperty(mockFile, 'size', {
+            value: uploadedFile.file_size || 0,
+            writable: false
+          })
           
           setSelectedFiles([mockFile]) // Set as array for new multi-file UI
           setSelectedFile(mockFile) // Keep for backward compatibility
