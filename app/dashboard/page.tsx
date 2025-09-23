@@ -16,11 +16,11 @@ export default async function DashboardPage() {
   // Check if user has a database record (same logic as home page)
   try {
     console.log('🔍 Dashboard: Checking user in database:', user.id, user.email)
-    const { data: userData, error: dbError } = await supabase
-      .from('users')
-      .select('id')
-      .eq('auth_user_id', user.id)
-      .single()
+      const { data: userData, error: dbError } = await supabase
+        .from('users')
+        .select('id')
+        .eq('email', user.email)
+        .single()
     
     console.log('📊 Dashboard: Database check result:', { userData, dbError })
     
