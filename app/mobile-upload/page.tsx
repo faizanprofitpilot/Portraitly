@@ -73,7 +73,10 @@ export default function MobileUploadPage() {
           });
           
           if (!statusResponse.ok) {
-            console.error('Failed to store upload status');
+            const errorData = await statusResponse.json();
+            console.error('❌ Failed to store upload status:', statusResponse.status, errorData);
+          } else {
+            console.log('✅ Upload status stored successfully');
           }
         } else {
           const errorData = await response.json();
