@@ -7,17 +7,9 @@ export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest) {
   try {
-    console.log('📱 Mobile upload API called');
     const formData = await request.formData();
     const file: File | null = formData.get('file') as File;
     const sessionId = formData.get('sessionId') as string;
-    
-    console.log('📱 File received:', {
-      name: file?.name,
-      size: file?.size,
-      type: file?.type,
-      sessionId
-    });
 
     // Validation
     if (!file) {
@@ -51,12 +43,6 @@ export async function POST(request: NextRequest) {
     // Save file
     const filepath = join(uploadsDir, filename);
     await writeFile(filepath, buffer);
-    
-    console.log('✅ File saved successfully:', {
-      filename,
-      filepath,
-      size: buffer.length
-    });
 
     return NextResponse.json({
       success: true,

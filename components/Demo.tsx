@@ -78,19 +78,14 @@ export default function Demo() {
 
     const pollForUploads = async () => {
       try {
-        console.log('📱 Polling server for mobile uploads, session:', sessionId)
-        
-        const response = await fetch(`/api/mobile-uploads?sessionId=${sessionId}`)
+        // Check for any mobile upload files with our session ID
+        const response = await fetch(`/api/check-mobile-uploads?sessionId=${sessionId}`)
         const data = await response.json()
         
-        console.log('📱 Server response:', data)
-        
-        if (data.uploads && data.uploads.length > 0) {
+        if (data.files && data.files.length > 0) {
           // Process the first uploaded file
-          const uploadedFile = data.uploads[0]
-          const imageUrl = `/uploads/${uploadedFile.filename}`
-          
-          console.log('📸 Processing mobile upload:', uploadedFile, 'URL:', imageUrl)
+          const uploadedFile = data.files[0]
+          const imageUrl = `/uploads/${uploadedFile}`
           
           // Create a File object from the uploaded image
           fetch(imageUrl)
@@ -101,19 +96,18 @@ export default function Demo() {
               return response.blob()
             })
             .then(blob => {
-              const file = new File([blob], uploadedFile.originalName, { type: 'image/jpeg' })
-              console.log('✅ Mobile upload processed successfully:', file.name)
+              const file = new File([blob], uploadedFile, { type: 'image/jpeg' })
               setSelectedFile(file)
               setPreviewUrl(imageUrl)
               setOriginalImageUrl(imageUrl)
               setShowMobileUpload(false) // Close mobile upload modal
             })
             .catch(error => {
-              console.error('❌ Error loading mobile upload:', error)
+              console.error('Error loading mobile upload:', error)
             })
         }
       } catch (error) {
-        console.error('❌ Error polling server for uploads:', error)
+        console.error('Error polling for uploads:', error)
       }
     }
 
