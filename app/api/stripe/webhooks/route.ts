@@ -125,10 +125,11 @@ async function handleSubscriptionUpdated(subscription: any, supabase: any) {
   }
 
   // Get user email from Stripe customer
-  const customer = await stripe.customers.retrieve(subscription.customer)
+  const customerId = typeof subscription.customer === 'string' ? subscription.customer : subscription.customer.id
+  const customer = await stripe.customers.retrieve(customerId)
   
   if (customer.deleted || !customer.email) {
-    console.error('No email found for customer:', subscription.customer)
+    console.error('No email found for customer:', customerId)
     return
   }
   
@@ -164,10 +165,11 @@ async function handleSubscriptionDeleted(subscription: any, supabase: any) {
   }
 
   // Get user email from Stripe customer
-  const customer = await stripe.customers.retrieve(subscription.customer)
+  const customerId = typeof subscription.customer === 'string' ? subscription.customer : subscription.customer.id
+  const customer = await stripe.customers.retrieve(customerId)
   
   if (customer.deleted || !customer.email) {
-    console.error('No email found for customer:', subscription.customer)
+    console.error('No email found for customer:', customerId)
     return
   }
   
@@ -209,10 +211,11 @@ async function handlePaymentSucceeded(invoice: any, supabase: any) {
   }
 
   // Get user email from Stripe customer
-  const customer = await stripe.customers.retrieve(subscription.customer)
+  const customerId = typeof subscription.customer === 'string' ? subscription.customer : subscription.customer.id
+  const customer = await stripe.customers.retrieve(customerId)
   
   if (customer.deleted || !customer.email) {
-    console.error('No email found for customer:', subscription.customer)
+    console.error('No email found for customer:', customerId)
     return
   }
   
@@ -245,10 +248,11 @@ async function handlePaymentFailed(invoice: any, supabase: any) {
   }
 
   // Get user email from Stripe customer
-  const customer = await stripe.customers.retrieve(subscription.customer)
+  const customerId = typeof subscription.customer === 'string' ? subscription.customer : subscription.customer.id
+  const customer = await stripe.customers.retrieve(customerId)
   
   if (customer.deleted || !customer.email) {
-    console.error('No email found for customer:', subscription.customer)
+    console.error('No email found for customer:', customerId)
     return
   }
   
