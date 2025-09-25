@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { User } from '@supabase/supabase-js'
 import { Camera, Download, LogOut, CreditCard, Image as ImageIcon } from 'lucide-react'
 import type { Photo } from '@/lib/database'
+import BillingManagement from './BillingManagement'
 
 interface DashboardProps {
   user: User
@@ -167,6 +168,11 @@ export default function Dashboard({ user }: DashboardProps) {
       </header>
 
       <main className="max-w-7xl mx-auto px-6 py-8">
+        {/* Billing Section */}
+        <div className="mb-8">
+          <BillingManagement user={user} />
+        </div>
+        
         {/* Upload Section */}
         <div className="bg-white rounded-2xl shadow-sm border p-8 mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-6">

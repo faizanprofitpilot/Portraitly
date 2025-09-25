@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase-browser'
 import { Camera, ArrowRight, CheckCircle, Star, Shield, Zap, Users, Download, Sparkles, Play, LogOut, Crown, Award, Globe } from 'lucide-react'
 import BackgroundPattern from './BackgroundPattern'
 import BeforeAfterSlider from './BeforeAfterSlider'
+import PricingSection from './PricingSection'
 
 export default function LandingPage() {
   const [loading, setLoading] = useState(false)
@@ -162,6 +163,9 @@ export default function LandingPage() {
           </div>
         </div>
       </main>
+
+      {/* Pricing */}
+      <PricingSection />
 
       {/* How It Works */}
       <section className="px-6 py-16 bg-white/5">

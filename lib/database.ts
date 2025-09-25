@@ -2,9 +2,17 @@ import { createClient } from './supabase/server'
 
 export interface User {
   id: string
+  auth_user_id: string
   email: string
+  plan: string
   credits_remaining: number
+  stripe_customer_id?: string
+  subscription_status?: string
+  subscription_plan?: string
+  subscription_id?: string
+  last_payment_date?: string
   created_at: string
+  updated_at: string
 }
 
 export interface Photo {
@@ -15,12 +23,12 @@ export interface Photo {
   created_at: string
 }
 
-export async function getUser(userId: string): Promise<User | null> {
+export async function getUser(authUserId: string): Promise<User | null> {
   const supabase = createClient()
   const { data, error } = await supabase
     .from('users')
     .select('*')
-    .eq('id', userId)
+    .eq('auth_user_id', authUserId)
     .single()
 
   if (error) {
@@ -31,14 +39,16 @@ export async function getUser(userId: string): Promise<User | null> {
   return data
 }
 
-export async function createUser(userId: string, email: string): Promise<User | null> {
+export async function createUser(authUserId: string, email: string): Promise<User | null> {
   const supabase = createClient()
   const { data, error } = await supabase
     .from('users')
     .insert({
-      id: userId,
+      auth_user_id: authUserId,
       email,
-      credits_remaining: 10 // Free trial credits
+      plan: 'free',
+      credits_remaining: 10, // Free trial credits
+      subscription_status: 'free'
     })
     .select()
     .single()
