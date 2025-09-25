@@ -48,9 +48,16 @@ export async function GET(request: NextRequest) {
     console.log('📊 Debug: User by email error:', emailError?.message)
 
     // Try to get table structure
-    const { data: tableInfo, error: tableError } = await supabase
-      .rpc('get_table_columns', { table_name: 'users' })
-      .catch(() => ({ data: null, error: { message: 'RPC not available' } }))
+    let tableInfo = null
+    let tableError = { message: 'RPC not available' }
+    
+    try {
+      const result = await supabase.rpc('get_table_columns', { table_name: 'users' })
+      tableInfo = result.data
+      tableError = result.error || { message: 'RPC not available' }
+    } catch (error) {
+      tableError = { message: 'RPC not available' }
+    }
     
     console.log('📊 Debug: Table structure:', tableInfo)
     console.log('📊 Debug: Table structure error:', tableError?.message)
