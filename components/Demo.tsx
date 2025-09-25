@@ -322,7 +322,7 @@ export default function Demo() {
               onClick={() => window.location.href = '/pricing'}
               className="bg-accent-turquoise/20 backdrop-blur-sm text-white px-4 py-2 rounded-lg hover:bg-accent-turquoise/30 transition-colors border border-accent-turquoise/30 flex items-center space-x-2"
             >
-              <span>Billing</span>
+              <span>{userData?.subscription_status === 'free' ? 'Upgrade' : 'Billing'}</span>
             </button>
             <button
               onClick={handleSignOut}
