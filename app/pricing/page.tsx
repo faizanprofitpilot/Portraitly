@@ -1,6 +1,30 @@
 import PricingSection from '@/components/PricingSection'
+import { createClient } from '@/lib/supabase-server'
+import { redirect } from 'next/navigation'
 
-export default function PricingPage() {
+export default async function PricingPage() {
+  const supabase = createClient()
+  
+  // Get current user
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
+  
+  if (authError || !user) {
+    // User not authenticated, redirect to home
+    redirect('/')
+  }
+
+  // Get user data from database
+  const { data: userData, error: dbError } = await supabase
+    .from('users')
+    .select('id, email, credits, plan, subscription_status, subscription_plan, stripe_customer_id, last_payment_date')
+    .eq('email', user.email)
+    .single()
+
+  if (dbError) {
+    console.error('Error fetching user data:', dbError)
+    // Continue without user data - will show sign in prompt
+  }
+
   return (
     <div className="min-h-screen bg-premium-gradient">
       {/* Hero Section */}
@@ -16,7 +40,7 @@ export default function PricingPage() {
       </section>
 
       {/* Pricing Section */}
-      <PricingSection />
+      <PricingSection userId={userData?.id} currentPlan={userData?.subscription_status} />
 
       {/* FAQ Section */}
       <section className="px-6 py-20 bg-white/5">
