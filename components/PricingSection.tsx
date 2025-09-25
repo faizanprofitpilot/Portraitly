@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Check, Crown, Zap, Star, ArrowRight } from 'lucide-react'
+import { Check, Crown, Zap, Star, ArrowRight, CheckCircle } from 'lucide-react'
 import { redirectToCheckout } from '@/lib/stripe-client'
 
 interface PricingSectionProps {
