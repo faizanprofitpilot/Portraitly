@@ -25,6 +25,11 @@ export async function POST(request: NextRequest) {
     }
     
     console.log('✅ Checkout API: Plan found:', plan)
+    console.log('🔍 Checkout API: Environment check:', {
+      STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY ? 'Set' : 'Missing',
+      STRIPE_PRO_PRICE_ID: process.env.STRIPE_PRO_PRICE_ID ? 'Set' : 'Missing',
+      NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL ? 'Set' : 'Missing'
+    })
 
     // Get user from Supabase
     const supabase = createClient()
