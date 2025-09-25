@@ -59,13 +59,13 @@ export default function Demo() {
           setCredits(data.user.credits_remaining)
         } else {
           console.error('❌ Demo: Failed to fetch user data:', data.error)
-          console.log('🔄 Demo: Redirecting to landing page due to user data failure')
-          window.location.href = '/'
+          console.log('⚠️ Demo: Continuing without user data - will show demo mode')
+          // Don't redirect - just continue in demo mode
         }
       } catch (error) {
         console.error('❌ Demo: Error fetching user data:', error)
-        console.log('🔄 Demo: Redirecting to landing page due to fetch error')
-        window.location.href = '/'
+        console.log('⚠️ Demo: Continuing without user data - will show demo mode')
+        // Don't redirect - just continue in demo mode
       } finally {
         setIsLoading(false)
       }
