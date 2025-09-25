@@ -384,6 +384,12 @@ export default function Demo() {
               </span>
             </div>
             <button
+              onClick={() => window.location.href = '/pricing'}
+              className="bg-accent-turquoise/20 backdrop-blur-sm text-white px-4 py-2 rounded-lg hover:bg-accent-turquoise/30 transition-colors border border-accent-turquoise/30 flex items-center space-x-2"
+            >
+              <span>Billing</span>
+            </button>
+            <button
               onClick={handleSignOut}
               className="bg-red-500/20 backdrop-blur-sm text-white px-4 py-2 rounded-lg hover:bg-red-500/30 transition-colors border border-red-500/30 flex items-center space-x-2"
             >
@@ -407,18 +413,6 @@ export default function Demo() {
           </p>
         </div>
 
-        {/* Billing Management Section */}
-        {userData && (
-          <div className="mb-8">
-            <BillingManagement user={{
-              id: userData.id || '',
-              subscription_status: userData.subscription_status,
-              subscription_plan: userData.subscription_plan,
-              credits: credits,
-              stripe_customer_id: userData.stripe_customer_id
-            }} />
-          </div>
-        )}
 
         {/* Upload Section */}
         <div className="bg-white/10 backdrop-blur-sm rounded-3xl p-8 border border-white/20 mb-8">
