@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { getServerSupabase } from "@/lib/supabase/auth";
+import { createClient as createServerClient } from '@/lib/supabase-server';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -28,7 +28,7 @@ export async function POST(req: Request) {
 
     if (!isDemo) {
       console.log("🔐 Checking authentication...");
-      const serverSupabase = getServerSupabase();
+      const serverSupabase = createServerClient();
       const { data: { user }, error: authError } = await serverSupabase.auth.getUser();
 
       if (authError) {
