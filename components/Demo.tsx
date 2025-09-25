@@ -53,9 +53,9 @@ export default function Demo() {
         console.log('📊 Demo: Response data:', data)
         
         if (data.success && data.user) {
-          console.log('✅ Demo: User data received:', data.user.email, 'Credits:', data.user.credits_remaining)
+          console.log('✅ Demo: User data received:', data.user.email, 'Credits:', data.user.credits)
           setUserData(data.user)
-          setCredits(data.user.credits_remaining)
+          setCredits(data.user.credits)
         } else {
           console.error('❌ Demo: Failed to fetch user data:', data.error)
         }
