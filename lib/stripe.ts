@@ -13,7 +13,7 @@ export const STRIPE_CONFIG = {
   plans: {
     pro: {
       name: 'Pro Plan', 
-      priceId: process.env.STRIPE_PRO_PRICE_ID || 'price_pro_monthly',
+      priceId: process.env.STRIPE_PRO_PRICE_ID || process.env.STRIPE_PRICE_ID || 'price_pro_monthly',
       credits: 200,
       price: 19.99,
       interval: 'month',
