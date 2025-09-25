@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { createClient } from '@/lib/supabase-browser'
-import { Camera, ArrowRight, CheckCircle, Star, Shield, Zap, Users, Download, Sparkles, Play, LogOut, Crown, Award, Globe } from 'lucide-react'
+import { Camera, ArrowRight, CheckCircle, Star, Shield, Zap, Users, Download, Sparkles, Play, Crown } from 'lucide-react'
 import BackgroundPattern from './BackgroundPattern'
 import BeforeAfterSlider from './BeforeAfterSlider'
 import PricingSection from './PricingSection'

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { CreditCard, Crown, Zap, Star, ExternalLink, CheckCircle } from 'lucide-react'
+import { CreditCard, Crown, ExternalLink, CheckCircle } from 'lucide-react'
 
 interface BillingManagementProps {
   user: {

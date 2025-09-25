@@ -1,10 +1,9 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Camera, Download, ArrowLeft, Sparkles, Image as ImageIcon, CheckCircle, X, Maximize2, Smartphone } from 'lucide-react'
+import { Camera, Download, ArrowLeft, Sparkles, Image as ImageIcon, X, Maximize2, Smartphone } from 'lucide-react'
 import Link from 'next/link'
 import MobileUploadModal from './MobileUploadModal'
-import BillingManagement from './BillingManagement'
 import { createClient } from '@/lib/supabase/client'
 
 const STYLE_OPTIONS = [
@@ -18,7 +17,7 @@ const STYLE_OPTIONS = [
 
 export default function Demo() {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([])
-  const [selectedFile, setSelectedFile] = useState<File | null>(null) // Keep for backward compatibility
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [selectedStyle, setSelectedStyle] = useState('professional')
   const [genderPreference, setGenderPreference] = useState<'male' | 'female' | 'auto' | 'neutral'>('auto')
   const [uploading, setUploading] = useState(false)
@@ -283,67 +282,6 @@ export default function Demo() {
     })
   }
 
-  // Get style-specific prompt for Gemini
-  const getStylePrompt = (style: string): string => {
-    const basePrompt = "Transform this casual selfie into a professional headshot. Keep the person's face and identity exactly the same, but change their clothing and background to be professional. "
-    
-    switch (style) {
-      case 'professional':
-        return basePrompt + "Dress them in a clean, modern business suit with a white dress shirt and professional tie. Use a clean, neutral background. Professional corporate headshot style."
-      
-      case 'finance':
-        return basePrompt + "Dress them in a conservative dark suit (navy or charcoal) with a white dress shirt and professional tie. Use a clean, neutral background. Conservative banking/finance professional style."
-      
-      case 'tech':
-        return basePrompt + "Dress them in a modern business casual outfit - blazer with dress shirt (no tie). Use a clean, modern background. Tech startup professional style."
-      
-      case 'creative':
-        return basePrompt + "Dress them in a stylish, modern business outfit - blazer with interesting shirt or top. Use a clean, artistic background. Creative professional style."
-      
-      case 'executive':
-        return basePrompt + "Dress them in a high-end executive suit with white dress shirt and tie. Use a clean, professional background. C-suite executive style."
-      
-      case 'editorial':
-        return basePrompt + "Dress them in a sophisticated business outfit. Use a clean, editorial-style background. Magazine-quality professional headshot."
-      
-      default:
-        return basePrompt + "Dress them in a professional business suit. Use a clean, neutral background."
-    }
-  }
-
-  // Helper function to get clothing colors based on style
-  const getClothingColor = (style: string) => {
-    switch (style) {
-      case 'professional':
-        return '#2c3e50' // Dark blue
-      case 'finance':
-        return '#34495e' // Charcoal
-      case 'tech':
-        return '#3498db' // Blue
-      case 'creative':
-        return '#e74c3c' // Red
-      case 'executive':
-        return '#1a252f' // Very dark
-      case 'editorial':
-        return '#2c3e50' // Dark blue
-      default:
-        return '#2c3e50'
-    }
-  }
-
-  // Helper function to get tie colors
-  const getTieColor = (style: string) => {
-    switch (style) {
-      case 'professional':
-        return '#c0392b' // Red
-      case 'finance':
-        return '#7f8c8d' // Gray
-      case 'executive':
-        return '#059669' // Emerald
-      default:
-        return '#c0392b'
-    }
-  }
 
   if (isLoading) {
     return (
