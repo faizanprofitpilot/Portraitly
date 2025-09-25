@@ -124,7 +124,7 @@ export async function GET(request: NextRequest) {
         )
       }
 
-      console.log('✅ User API: User created successfully:', newUser.email)
+      console.log('✅ User API: User created successfully:', newUser?.email)
       return NextResponse.json({ success: true, user: newUser })
     }
 
