@@ -109,7 +109,7 @@ export default function LandingPage() {
                 Perfect for LinkedIn, resumes, and professional profiles.
               </p>
 
-              <div className="flex justify-center mb-8">
+              <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
                 <button
                   onClick={handleGoogleSignIn}
                   disabled={loading}
@@ -120,10 +120,18 @@ export default function LandingPage() {
                   ) : (
                     <>
                       <Crown className="h-5 w-5" />
-                      <span>Try for Free</span>
+                      <span>Start Free (10 Credits)</span>
                       <ArrowRight className="h-5 w-5" />
                     </>
                   )}
+                </button>
+                
+                <button
+                  onClick={() => window.location.href = '/pricing'}
+                  className="bg-white/10 hover:bg-white/20 text-white font-semibold text-lg px-8 py-4 rounded-xl border border-white/20 transition-all duration-200 flex items-center justify-center space-x-3"
+                >
+                  <Star className="h-5 w-5" />
+                  <span>View Pricing</span>
                 </button>
               </div>
 

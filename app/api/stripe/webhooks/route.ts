@@ -85,7 +85,7 @@ async function handleCheckoutCompleted(session: any, supabase: any) {
     .update({
       subscription_status: 'active',
       subscription_plan: planType,
-      credits: plan.credits === -1 ? -1 : plan.credits, // -1 for unlimited
+      credits: plan.credits, // Pro plan gets 200 credits
       subscription_id: session.subscription,
     })
     .eq('id', userId)
@@ -116,7 +116,7 @@ async function handleSubscriptionUpdated(subscription: any, supabase: any) {
     .update({
       subscription_status: subscriptionStatus,
       subscription_plan: planType,
-      credits: plan.credits === -1 ? -1 : plan.credits,
+      credits: plan.credits, // Pro plan gets 200 credits
       subscription_id: subscription.id,
     })
     .eq('id', userId)
@@ -166,7 +166,7 @@ async function handlePaymentSucceeded(invoice: any, supabase: any) {
   await supabase
     .from('users')
     .update({
-      credits: plan.credits === -1 ? -1 : plan.credits,
+      credits: plan.credits, // Pro plan gets 200 credits
       last_payment_date: new Date().toISOString(),
     })
     .eq('id', userId)

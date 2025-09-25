@@ -7,10 +7,10 @@ export default function PricingPage() {
       <section className="px-6 py-20">
         <div className="max-w-4xl mx-auto text-center">
           <h1 className="text-5xl md:text-6xl font-bold text-white mb-6">
-            Choose Your Plan
+            Simple Pricing
           </h1>
           <p className="text-xl text-gray-300 mb-8">
-            Start with 10 free credits, then upgrade when you're ready for more.
+            Start free with 10 credits, then upgrade to Pro for unlimited professional headshots.
           </p>
         </div>
       </section>
@@ -31,8 +31,8 @@ export default function PricingPage() {
                 How many credits do I get with each plan?
               </h3>
               <p className="text-gray-300">
-                Free users get 10 credits to start. Basic Plan includes 50 credits/month, 
-                Pro Plan includes 200 credits/month, and Unlimited Plan has no limits.
+                Free users get 10 credits to start and try Portraitly. Pro Plan includes 200 credits/month, 
+                which is more than enough for most professional use cases.
               </p>
             </div>
             

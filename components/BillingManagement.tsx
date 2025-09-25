@@ -46,11 +46,7 @@ export default function BillingManagement({ user }: BillingManagementProps) {
 
   const getPlanIcon = (plan?: string) => {
     switch (plan) {
-      case 'basic':
-        return <Zap className="h-5 w-5" />
       case 'pro':
-        return <Star className="h-5 w-5" />
-      case 'unlimited':
         return <Crown className="h-5 w-5" />
       default:
         return <CheckCircle className="h-5 w-5" />
@@ -59,12 +55,8 @@ export default function BillingManagement({ user }: BillingManagementProps) {
 
   const getPlanName = (plan?: string) => {
     switch (plan) {
-      case 'basic':
-        return 'Basic Plan'
       case 'pro':
         return 'Pro Plan'
-      case 'unlimited':
-        return 'Unlimited Plan'
       default:
         return 'Free Plan'
     }

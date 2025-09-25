@@ -14,20 +14,21 @@ export default function PricingSection({ userId, currentPlan }: PricingSectionPr
 
   const plans = [
     {
-      id: 'basic',
-      name: 'Basic',
-      price: '$9.99',
-      period: '/month',
-      credits: 50,
-      description: 'Perfect for personal use',
+      id: 'free',
+      name: 'Free',
+      price: '$0',
+      period: '',
+      credits: 10,
+      description: 'Try Portraitly for free',
       features: [
-        '50 AI headshots per month',
+        '10 AI headshots to start',
         'All style options',
         'High resolution downloads',
-        'Email support'
+        'Perfect for testing'
       ],
       popular: false,
-      icon: Zap,
+      icon: CheckCircle,
+      isFree: true,
     },
     {
       id: 'pro',
@@ -35,34 +36,18 @@ export default function PricingSection({ userId, currentPlan }: PricingSectionPr
       price: '$19.99',
       period: '/month',
       credits: 200,
-      description: 'Great for professionals',
+      description: 'Perfect for professionals',
       features: [
         '200 AI headshots per month',
         'All style options',
         'High resolution downloads',
         'Priority support',
-        'Commercial license'
+        'Commercial license',
+        'Cancel anytime'
       ],
       popular: true,
-      icon: Star,
-    },
-    {
-      id: 'unlimited',
-      name: 'Unlimited',
-      price: '$39.99',
-      period: '/month',
-      credits: -1,
-      description: 'For heavy users',
-      features: [
-        'Unlimited AI headshots',
-        'All style options',
-        'High resolution downloads',
-        'Priority support',
-        'Commercial license',
-        'API access'
-      ],
-      popular: false,
       icon: Crown,
+      isFree: false,
     },
   ]
 
@@ -70,6 +55,12 @@ export default function PricingSection({ userId, currentPlan }: PricingSectionPr
     if (!userId) {
       // Redirect to sign in
       window.location.href = '/auth'
+      return
+    }
+
+    // Handle free plan - just redirect to dashboard
+    if (planId === 'free') {
+      window.location.href = '/dashboard'
       return
     }
 
@@ -115,7 +106,7 @@ export default function PricingSection({ userId, currentPlan }: PricingSectionPr
         </div>
 
         {/* Pricing Cards */}
-        <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+        <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
           {plans.map((plan) => {
             const Icon = plan.icon
             const isCurrentPlan = currentPlan === plan.id
@@ -192,6 +183,8 @@ export default function PricingSection({ userId, currentPlan }: PricingSectionPr
                       ? 'bg-gray-600 text-gray-300 cursor-not-allowed'
                       : plan.popular
                       ? 'bg-accent-turquoise hover:bg-accent-turquoise/90 text-white'
+                      : plan.isFree
+                      ? 'bg-white/20 hover:bg-white/30 text-white border border-white/40'
                       : 'bg-white/10 hover:bg-white/20 text-white border border-white/20'
                   }`}
                 >
@@ -202,6 +195,11 @@ export default function PricingSection({ userId, currentPlan }: PricingSectionPr
                     </>
                   ) : isCurrentPlan ? (
                     <span>Current Plan</span>
+                  ) : plan.isFree ? (
+                    <>
+                      <span>Start Free</span>
+                      <ArrowRight className="h-5 w-5" />
+                    </>
                   ) : (
                     <>
                       <span>Get Started</span>

@@ -11,14 +11,6 @@ export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
 export const STRIPE_CONFIG = {
   // Subscription plans
   plans: {
-    basic: {
-      name: 'Basic Plan',
-      priceId: process.env.STRIPE_BASIC_PRICE_ID || 'price_basic_monthly',
-      credits: 50,
-      price: 9.99,
-      interval: 'month',
-      description: '50 AI headshots per month'
-    },
     pro: {
       name: 'Pro Plan', 
       priceId: process.env.STRIPE_PRO_PRICE_ID || 'price_pro_monthly',
@@ -26,14 +18,6 @@ export const STRIPE_CONFIG = {
       price: 19.99,
       interval: 'month',
       description: '200 AI headshots per month'
-    },
-    unlimited: {
-      name: 'Unlimited Plan',
-      priceId: process.env.STRIPE_UNLIMITED_PRICE_ID || 'price_unlimited_monthly',
-      credits: -1, // -1 means unlimited
-      price: 39.99,
-      interval: 'month',
-      description: 'Unlimited AI headshots'
     }
   },
   
