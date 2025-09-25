@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase-server'
 import { redirect } from 'next/navigation'
-import Dashboard from '@/components/Dashboard'
+import Demo from '@/components/Demo'
 
 export default async function DashboardPage() {
   console.log('🎯 Dashboard page rendering')
@@ -51,19 +51,19 @@ export default async function DashboardPage() {
         console.log('❌ Dashboard: Failed to create user record:', insertError)
         // Don't redirect on error, just show dashboard with session user
         console.log('⚠️ Dashboard: Continuing with session user despite DB error')
-        return <Dashboard user={session.user} />
+        return <Demo />
       }
       
       console.log('✅ Dashboard: User record created:', newUser)
-      return <Dashboard user={session.user} />
+      return <Demo />
     }
     
     console.log('✅ Dashboard: User authenticated and has database record:', session.user.email)
-    return <Dashboard user={session.user} />
+    return <Demo />
   } catch (error) {
     console.error('❌ Dashboard: Error checking user in database:', error)
     // Don't redirect on error, just show dashboard with session user
     console.log('⚠️ Dashboard: Continuing with session user despite error')
-    return <Dashboard user={session.user} />
+    return <Demo />
   }
 }

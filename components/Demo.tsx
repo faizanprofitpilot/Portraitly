@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { Camera, Download, ArrowLeft, Sparkles, Image as ImageIcon, CheckCircle, X, Maximize2, Smartphone } from 'lucide-react'
 import Link from 'next/link'
 import MobileUploadModal from './MobileUploadModal'
+import BillingManagement from './BillingManagement'
 import { createClient } from '@/lib/supabase/client'
 
 const STYLE_OPTIONS = [
@@ -405,6 +406,19 @@ export default function Demo() {
             Upload a selfie and transform it into a professional headshot with AI magic!
           </p>
         </div>
+
+        {/* Billing Management Section */}
+        {userData && (
+          <div className="mb-8">
+            <BillingManagement user={{
+              id: userData.id || '',
+              subscription_status: userData.subscription_status,
+              subscription_plan: userData.subscription_plan,
+              credits: credits,
+              stripe_customer_id: userData.stripe_customer_id
+            }} />
+          </div>
+        )}
 
         {/* Upload Section */}
         <div className="bg-white/10 backdrop-blur-sm rounded-3xl p-8 border border-white/20 mb-8">
