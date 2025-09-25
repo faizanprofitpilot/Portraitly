@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase-server'
 import { redirect } from 'next/navigation'
-import Demo from '@/components/Demo'
+import Dashboard from '@/components/Dashboard'
 
 export default async function DashboardPage() {
   console.log('🎯 Dashboard page rendering')
@@ -19,7 +19,7 @@ export default async function DashboardPage() {
       const { data: userData, error: dbError } = await supabase
         .from('users')
         .select('id')
-        .eq('email', session.user.email)
+        .eq('auth_user_id', session.user.id)
         .single()
     
     console.log('📊 Dashboard: Database check result:', { userData, dbError })
@@ -31,9 +31,11 @@ export default async function DashboardPage() {
       const { data: newUser, error: insertError } = await supabase
         .from('users')
         .insert({
+          auth_user_id: session.user.id,
           email: session.user.email,
-          credits: 10,
-          plan: 'free'
+          credits_remaining: 10,
+          plan: 'free',
+          subscription_status: 'free'
         })
         .select('id')
         .single()
@@ -47,7 +49,7 @@ export default async function DashboardPage() {
     }
     
     console.log('✅ Dashboard: User authenticated and has database record:', session.user.email)
-    return <Demo />
+    return <Dashboard user={session.user} />
   } catch (error) {
     console.error('❌ Dashboard: Error checking user in database:', error)
     redirect('/')

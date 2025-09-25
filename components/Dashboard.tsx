@@ -6,6 +6,8 @@ import { User } from '@supabase/supabase-js'
 import { Camera, Download, LogOut, CreditCard, Image as ImageIcon } from 'lucide-react'
 import type { Photo } from '@/lib/database'
 import BillingManagement from './BillingManagement'
+import OutOfCreditsModal from './OutOfCreditsModal'
+import AIErrorModal from './AIErrorModal'
 
 interface DashboardProps {
   user: User
@@ -17,6 +19,9 @@ export default function Dashboard({ user }: DashboardProps) {
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [showOutOfCredits, setShowOutOfCredits] = useState(false)
+  const [showAIError, setShowAIError] = useState(false)
+  const [aiError, setAIError] = useState<string>('')
   const supabase = createClient()
 
   useEffect(() => {
@@ -61,7 +66,13 @@ export default function Dashboard({ user }: DashboardProps) {
   }
 
   const handleUpload = async () => {
-    if (!selectedFile || credits === 0) return
+    if (!selectedFile) return
+
+    // Check credits first
+    if (credits <= 0) {
+      setShowOutOfCredits(true)
+      return
+    }
 
     setUploading(true)
     try {
@@ -117,7 +128,8 @@ export default function Dashboard({ user }: DashboardProps) {
 
     } catch (error) {
       console.error('Error uploading:', error)
-      alert('Failed to upload image. Please try again.')
+      setAIError(error instanceof Error ? error.message : 'Failed to generate headshot')
+      setShowAIError(true)
     } finally {
       setUploading(false)
     }
@@ -305,6 +317,26 @@ export default function Dashboard({ user }: DashboardProps) {
             </p>
           </div>
         )}
+
+        {/* Modals */}
+        <OutOfCreditsModal
+          isOpen={showOutOfCredits}
+          onClose={() => setShowOutOfCredits(false)}
+          onUpgrade={() => {
+            setShowOutOfCredits(false)
+            window.location.href = '/pricing'
+          }}
+        />
+
+        <AIErrorModal
+          isOpen={showAIError}
+          onClose={() => setShowAIError(false)}
+          onRetry={() => {
+            setShowAIError(false)
+            handleUpload()
+          }}
+          error={aiError}
+        />
       </main>
     </div>
   )
