@@ -81,12 +81,13 @@ async function handleCheckoutCompleted(session: any, supabase: any) {
 
   // Get user email from Stripe customer
   const customer = await stripe.customers.retrieve(session.customer)
-  const userEmail = customer.email
-
-  if (!userEmail) {
+  
+  if (customer.deleted || !customer.email) {
     console.error('No email found for customer:', session.customer)
     return
   }
+  
+  const userEmail = customer.email
 
   // Update user subscription status by email (since auth_user_id column doesn't exist)
   const { error } = await supabase
@@ -125,12 +126,13 @@ async function handleSubscriptionUpdated(subscription: any, supabase: any) {
 
   // Get user email from Stripe customer
   const customer = await stripe.customers.retrieve(subscription.customer)
-  const userEmail = customer.email
-
-  if (!userEmail) {
+  
+  if (customer.deleted || !customer.email) {
     console.error('No email found for customer:', subscription.customer)
     return
   }
+  
+  const userEmail = customer.email
 
   // Update user subscription based on status
   const subscriptionStatus = subscription.status === 'active' ? 'active' : 'inactive'
@@ -163,12 +165,13 @@ async function handleSubscriptionDeleted(subscription: any, supabase: any) {
 
   // Get user email from Stripe customer
   const customer = await stripe.customers.retrieve(subscription.customer)
-  const userEmail = customer.email
-
-  if (!userEmail) {
+  
+  if (customer.deleted || !customer.email) {
     console.error('No email found for customer:', subscription.customer)
     return
   }
+  
+  const userEmail = customer.email
 
   // Reset user to free tier
   const { error } = await supabase
@@ -207,12 +210,13 @@ async function handlePaymentSucceeded(invoice: any, supabase: any) {
 
   // Get user email from Stripe customer
   const customer = await stripe.customers.retrieve(subscription.customer)
-  const userEmail = customer.email
-
-  if (!userEmail) {
+  
+  if (customer.deleted || !customer.email) {
     console.error('No email found for customer:', subscription.customer)
     return
   }
+  
+  const userEmail = customer.email
 
   // Refill credits for the new billing period
   const { error } = await supabase
@@ -242,12 +246,13 @@ async function handlePaymentFailed(invoice: any, supabase: any) {
 
   // Get user email from Stripe customer
   const customer = await stripe.customers.retrieve(subscription.customer)
-  const userEmail = customer.email
-
-  if (!userEmail) {
+  
+  if (customer.deleted || !customer.email) {
     console.error('No email found for customer:', subscription.customer)
     return
   }
+  
+  const userEmail = customer.email
 
   // Mark subscription as past due
   const { error } = await supabase
