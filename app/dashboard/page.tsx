@@ -6,21 +6,28 @@ export default async function DashboardPage() {
   console.log('🎯 Dashboard page rendering')
   
   const supabase = createClient()
-  const { data: { session } } = await supabase.auth.getSession()
+  const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+  
+  if (sessionError) {
+    console.error('❌ Dashboard: Session error:', sessionError)
+    redirect('/')
+  }
   
   if (!session?.user) {
     console.log('❌ Dashboard: No authenticated session, redirecting to home')
     redirect('/')
   }
   
-  // Check if user has a database record (same logic as home page)
+  console.log('✅ Dashboard: User authenticated:', session.user.email)
+  
+  // Check if user has a database record
   try {
     console.log('🔍 Dashboard: Checking user in database:', session.user.id, session.user.email)
-      const { data: userData, error: dbError } = await supabase
-        .from('users')
-        .select('id')
-        .eq('auth_user_id', session.user.id)
-        .single()
+    const { data: userData, error: dbError } = await supabase
+      .from('users')
+      .select('id, auth_user_id, email, credits_remaining, plan, subscription_status')
+      .eq('auth_user_id', session.user.id)
+      .single()
     
     console.log('📊 Dashboard: Database check result:', { userData, dbError })
     
@@ -37,21 +44,26 @@ export default async function DashboardPage() {
           plan: 'free',
           subscription_status: 'free'
         })
-        .select('id')
+        .select('id, auth_user_id, email, credits_remaining, plan, subscription_status')
         .single()
 
       if (!newUser || insertError) {
         console.log('❌ Dashboard: Failed to create user record:', insertError)
-        redirect('/')
+        // Don't redirect on error, just show dashboard with session user
+        console.log('⚠️ Dashboard: Continuing with session user despite DB error')
+        return <Dashboard user={session.user} />
       }
       
-      console.log('✅ Dashboard: User record created')
+      console.log('✅ Dashboard: User record created:', newUser)
+      return <Dashboard user={session.user} />
     }
     
     console.log('✅ Dashboard: User authenticated and has database record:', session.user.email)
     return <Dashboard user={session.user} />
   } catch (error) {
     console.error('❌ Dashboard: Error checking user in database:', error)
-    redirect('/')
+    // Don't redirect on error, just show dashboard with session user
+    console.log('⚠️ Dashboard: Continuing with session user despite error')
+    return <Dashboard user={session.user} />
   }
 }
