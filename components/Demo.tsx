@@ -47,25 +47,15 @@ export default function Demo() {
   useEffect(() => {
     const fetchUserData = async () => {
       try {
-        console.log('🔍 Demo: Fetching user data from /api/user...')
         const response = await fetch('/api/user')
-        console.log('📊 Demo: API response status:', response.status)
         const data = await response.json()
-        console.log('📊 Demo: API response data:', data)
         
         if (data.success && data.user) {
-          console.log('✅ Demo: User data fetched successfully:', data.user.email)
           setUserData(data.user)
           setCredits(data.user.credits_remaining)
-        } else {
-          console.error('❌ Demo: Failed to fetch user data:', data.error)
-          console.log('⚠️ Demo: Continuing without user data - will show demo mode')
-          // Don't redirect - just continue in demo mode
         }
       } catch (error) {
-        console.error('❌ Demo: Error fetching user data:', error)
-        console.log('⚠️ Demo: Continuing without user data - will show demo mode')
-        // Don't redirect - just continue in demo mode
+        // Continue without user data - will show demo mode
       } finally {
         setIsLoading(false)
       }

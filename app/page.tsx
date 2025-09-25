@@ -8,11 +8,9 @@ export default async function HomePage() {
 
   // If user has a session, redirect to dashboard
   if (session?.user) {
-    console.log('✅ User has session, redirecting to dashboard')
     redirect('/dashboard')
   }
 
   // No session, show landing page
-  console.log('❌ No session found, showing landing page')
   return <LandingPage />
 }

@@ -1,150 +1,174 @@
 # Portraitly - AI Headshot Generator
 
-An AI-powered headshot generator that creates professional portraits from casual selfies while preserving facial identity.
+Transform casual selfies into professional headshots with AI-powered technology. Portraitly preserves facial identity while creating stunning professional portraits perfect for LinkedIn, resumes, and business profiles.
 
-## Features
+## ✨ Features
 
-- 🎯 **Identity Preservation**: Powered by advanced AI that maintains facial consistency
-- 🚀 **Quick Generation**: Upload a selfie, get professional headshots in seconds
-- 💳 **Credit System**: Start with 10 free credits, each generation costs 1 credit
-- 🔐 **Secure Auth**: Google OAuth integration with Supabase
-- 📱 **Responsive Design**: Beautiful UI that works on all devices
+- 🎯 **Identity Preservation**: Advanced AI maintains facial consistency
+- 🚀 **Quick Generation**: Professional headshots in seconds
+- 💳 **Flexible Pricing**: 10 free credits, then Pro plan with 200 credits/month
+- 🔐 **Secure Authentication**: Google OAuth integration
+- 📱 **Mobile Upload**: QR code upload for mobile photos
+- 💼 **Multiple Styles**: Professional, Finance, Tech, Creative, Executive, Editorial
+- 🎨 **Beautiful UI**: Modern, responsive design
 
-## Tech Stack
+## 🛠️ Tech Stack
 
 - **Frontend**: Next.js 14 (App Router), Tailwind CSS
-- **Backend**: Supabase (Auth, Database, Storage)
+- **Backend**: Next.js API Routes
+- **Database**: Supabase (PostgreSQL)
+- **Authentication**: Supabase Auth + Google OAuth
+- **Payments**: Stripe
+- **Storage**: Supabase Storage
+- **AI**: Gemini API
 - **Deployment**: Vercel
-- **AI**: Placeholder for Nano Banana integration (Phase 2)
 
-## Getting Started
+## 🚀 Quick Start
 
 ### Prerequisites
 
-- Node.js 18+ 
+- Node.js 18+
 - Supabase account
-- Google OAuth credentials
+- Stripe account
+- Gemini API key
 
-### 1. Clone and Install
+### Installation
 
-```bash
-git clone <your-repo>
-cd portraitly
-npm install
-```
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/yourusername/portraitly.git
+   cd portraitly
+   ```
 
-### 2. Set up Supabase
+2. **Install dependencies**
+   ```bash
+   npm install
+   ```
 
-1. Create a new Supabase project
-2. Run the SQL schema from `supabase-schema.sql` in your Supabase SQL editor
-3. Enable Google OAuth in Authentication > Providers
-4. Create a storage bucket named `photos` (public)
+3. **Set up environment variables**
+   ```bash
+   cp env.local.template .env.local
+   ```
+   
+   Fill in your environment variables:
+   ```bash
+   # Supabase
+   NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+   SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
+   
+   # Stripe
+   STRIPE_SECRET_KEY=sk_test_...
+   NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_...
+   STRIPE_WEBHOOK_SECRET=whsec_...
+   STRIPE_PRO_PRICE_ID=price_...
+   
+   # AI
+   GEMINI_API_KEY=your_gemini_api_key
+   
+   # App
+   NEXT_PUBLIC_SITE_URL=http://localhost:3000
+   ```
 
-### 3. Environment Variables
+4. **Set up the database**
+   
+   Run the SQL scripts in your Supabase SQL Editor:
+   - `supabase-schema.sql` - Main database schema
+   - `mobile-uploads-schema.sql` - Mobile uploads table
+   - `minimal-stripe-migration.sql` - Stripe integration
 
-Create `.env.local` file:
+5. **Start the development server**
+   ```bash
+   npm run dev
+   ```
 
-```env
-NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
-NEXT_PUBLIC_APP_URL=http://localhost:3000
-```
+6. **Open your browser**
+   Navigate to [http://localhost:3000](http://localhost:3000)
 
-### 4. Run Development Server
-
-```bash
-npm run dev
-```
-
-Visit `http://localhost:3000` to see the app.
-
-## Project Structure
+## 📁 Project Structure
 
 ```
 portraitly/
-├── app/
-│   ├── api/generate-headshot/    # API route for headshot generation
-│   ├── dashboard/                # Dashboard page (protected)
-│   ├── globals.css              # Global styles
-│   ├── layout.tsx               # Root layout
-│   └── page.tsx                 # Landing page
-├── components/
-│   ├── Dashboard.tsx            # Main dashboard component
-│   └── LandingPage.tsx          # Landing page component
-├── lib/
-│   ├── database.ts              # Database helper functions
-│   ├── supabase/
-│   │   ├── client.ts            # Client-side Supabase
-│   │   └── server.ts            # Server-side Supabase
-│   └── supabase-provider.tsx    # React context provider
-└── supabase-schema.sql          # Database schema
+├── app/                    # Next.js App Router
+│   ├── api/               # API routes
+│   ├── auth/              # Authentication
+│   ├── dashboard/         # Dashboard page
+│   ├── pricing/           # Pricing page
+│   └── mobile-upload/     # Mobile upload page
+├── components/            # React components
+├── lib/                   # Utility functions
+├── docs/                  # Documentation
+└── *.sql                  # Database schemas
 ```
 
-## Database Schema
+## 🔧 Core Flows
 
-### Users Table
-- `id`: UUID (primary key)
-- `email`: User email
-- `credits_remaining`: Number of credits left
-- `created_at`: Timestamp
+### Authentication Flow
+1. User clicks "Try for Free" on landing page
+2. Google OAuth authentication via Supabase
+3. User record created in database
+4. Redirect to dashboard with 10 free credits
 
-### Photos Table
-- `id`: UUID (primary key)
-- `user_id`: Foreign key to users
-- `original_url`: URL of uploaded selfie
-- `generated_url`: URL of generated headshot
-- `created_at`: Timestamp
+### AI Generation Flow
+1. User uploads selfie (drag & drop or mobile QR)
+2. Selects professional style and attire preference
+3. AI processes image using Gemini API
+4. User downloads professional headshot
+5. Credit deducted from account
 
-## API Endpoints
+### Subscription Flow
+1. User visits pricing page
+2. Selects Pro plan ($19.99/month)
+3. Stripe checkout session created
+4. Payment processed
+5. Webhook updates user to Pro plan with 200 credits
+6. Monthly credit refills via webhook
 
-### POST /api/generate-headshot
+## 💳 Pricing
 
-Generates a professional headshot from an uploaded selfie.
+- **Free Plan**: 10 credits to start
+- **Pro Plan**: $19.99/month for 200 credits
+- Credits reset monthly on billing date
+- Cancel anytime through billing portal
 
-**Request Body:**
-```json
-{
-  "originalUrl": "https://...",
-  "userId": "uuid"
-}
-```
+## 🔒 Security
 
-**Response:**
-```json
-{
-  "generatedUrl": "https://...",
-  "photoId": "uuid",
-  "creditsRemaining": 9
-}
-```
+- Row Level Security (RLS) enabled on all database tables
+- Supabase Auth handles secure authentication
+- Stripe webhook signature verification
+- Secure file upload validation
+- API rate limiting
 
-## Deployment
+## 📚 Documentation
 
-### Vercel
+- [Architecture Guide](docs/ARCHITECTURE.md) - Detailed technical documentation
+- [Environment Variables](env.local.template) - Required environment variables
+
+## 🚀 Deployment
+
+The application is production-ready and deployed on Vercel:
 
 1. Connect your GitHub repository to Vercel
-2. Add environment variables in Vercel dashboard
-3. Deploy!
+2. Configure environment variables in Vercel dashboard
+3. Set up Stripe webhook endpoint: `https://yourdomain.com/api/stripe/webhooks`
+4. Deploy automatically on git push
 
-The app is configured for Vercel deployment with proper Next.js settings.
-
-## Phase 2 Roadmap
-
-- [ ] Integrate Nano Banana AI for actual headshot generation
-- [ ] Add Stripe payment integration
-- [ ] Multiple headshot styles (LinkedIn, editorial, etc.)
-- [ ] Batch processing
-- [ ] Advanced credit packages
-- [ ] User profile management
-
-## Contributing
+## 🤝 Contributing
 
 1. Fork the repository
 2. Create a feature branch
 3. Make your changes
-4. Submit a pull request
+4. Run tests and linting
+5. Submit a pull request
 
-## License
+## 📄 License
 
-MIT License - see LICENSE file for details.
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## 🆘 Support
+
+For support, email support@portraitly.com or create an issue in the GitHub repository.
+
+---
+
+Built with ❤️ by the Portraitly team
