@@ -56,7 +56,7 @@ export default function Demo() {
         if (data.success && data.user) {
           console.log('✅ Demo: User data fetched successfully:', data.user.email)
           setUserData(data.user)
-          setCredits(data.user.credits)
+          setCredits(data.user.credits_remaining)
         } else {
           console.error('❌ Demo: Failed to fetch user data:', data.error)
           console.log('🔄 Demo: Redirecting to landing page due to user data failure')

@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
     const supabase = createClient()
     const { data: user, error: userError } = await supabase
       .from('users')
-      .select('email, stripe_customer_id')
+      .select('id, email, stripe_customer_id')
       .eq('id', userId)
       .single()
 
@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
       const customer = await stripe.customers.create({
         email: user.email,
         metadata: {
-          user_id: userId,
+          user_id: user.id,
         },
       })
       customerId = customer.id
@@ -69,12 +69,12 @@ export async function POST(request: NextRequest) {
       success_url: STRIPE_CONFIG.successUrl,
       cancel_url: STRIPE_CONFIG.cancelUrl,
       metadata: {
-        user_id: userId,
+        user_id: user.id,
         plan_type: planType,
       },
       subscription_data: {
         metadata: {
-          user_id: userId,
+          user_id: user.id,
           plan_type: planType,
         },
       },

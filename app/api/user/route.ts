@@ -32,8 +32,8 @@ export async function GET(request: NextRequest) {
     // Get user data from database
     const { data: userData, error: dbError } = await supabase
       .from('users')
-      .select('id, email, credits, plan')
-      .eq('email', user.email)
+      .select('id, email, credits_remaining, plan, subscription_status, subscription_plan, stripe_customer_id')
+      .eq('auth_user_id', user.id)
       .single()
 
     if (dbError) {
@@ -41,11 +41,13 @@ export async function GET(request: NextRequest) {
       const { data: newUser, error: insertError } = await supabase
         .from('users')
         .insert({
+          auth_user_id: user.id,
           email: user.email,
-          credits: 10,
-          plan: 'free'
+          credits_remaining: 10,
+          plan: 'free',
+          subscription_status: 'free'
         })
-        .select('id, email, credits, plan')
+        .select('id, email, credits_remaining, plan, subscription_status, subscription_plan, stripe_customer_id')
         .single()
 
       if (insertError) {
