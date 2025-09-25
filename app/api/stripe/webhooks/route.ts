@@ -79,18 +79,33 @@ async function handleCheckoutCompleted(session: any, supabase: any) {
     return
   }
 
-  // Update user subscription status
-  await supabase
+  // Get user email from Stripe customer
+  const customer = await stripe.customers.retrieve(session.customer)
+  const userEmail = customer.email
+
+  if (!userEmail) {
+    console.error('No email found for customer:', session.customer)
+    return
+  }
+
+  // Update user subscription status by email (since auth_user_id column doesn't exist)
+  const { error } = await supabase
     .from('users')
     .update({
       subscription_status: 'active',
       subscription_plan: planType,
-      credits_remaining: plan.credits, // Pro plan gets 200 credits
+      credits: plan.credits, // Pro plan gets 200 credits
       subscription_id: session.subscription,
+      stripe_customer_id: session.customer,
     })
-    .eq('id', userId)
+    .eq('email', userEmail)
 
-  console.log(`✅ Checkout completed for user ${userId}, plan: ${planType}`)
+  if (error) {
+    console.error('Error updating user subscription:', error)
+    return
+  }
+
+  console.log(`✅ Checkout completed for user ${userEmail}, plan: ${planType}`)
 }
 
 async function handleSubscriptionUpdated(subscription: any, supabase: any) {
@@ -108,20 +123,34 @@ async function handleSubscriptionUpdated(subscription: any, supabase: any) {
     return
   }
 
+  // Get user email from Stripe customer
+  const customer = await stripe.customers.retrieve(subscription.customer)
+  const userEmail = customer.email
+
+  if (!userEmail) {
+    console.error('No email found for customer:', subscription.customer)
+    return
+  }
+
   // Update user subscription based on status
   const subscriptionStatus = subscription.status === 'active' ? 'active' : 'inactive'
   
-  await supabase
+  const { error } = await supabase
     .from('users')
     .update({
       subscription_status: subscriptionStatus,
       subscription_plan: planType,
-      credits_remaining: plan.credits, // Pro plan gets 200 credits
+      credits: plan.credits, // Pro plan gets 200 credits
       subscription_id: subscription.id,
     })
-    .eq('id', userId)
+    .eq('email', userEmail)
 
-  console.log(`✅ Subscription updated for user ${userId}, status: ${subscriptionStatus}`)
+  if (error) {
+    console.error('Error updating subscription:', error)
+    return
+  }
+
+  console.log(`✅ Subscription updated for user ${userEmail}, status: ${subscriptionStatus}`)
 }
 
 async function handleSubscriptionDeleted(subscription: any, supabase: any) {
@@ -132,18 +161,32 @@ async function handleSubscriptionDeleted(subscription: any, supabase: any) {
     return
   }
 
+  // Get user email from Stripe customer
+  const customer = await stripe.customers.retrieve(subscription.customer)
+  const userEmail = customer.email
+
+  if (!userEmail) {
+    console.error('No email found for customer:', subscription.customer)
+    return
+  }
+
   // Reset user to free tier
-  await supabase
+  const { error } = await supabase
     .from('users')
     .update({
       subscription_status: 'cancelled',
       subscription_plan: null,
-      credits_remaining: 10, // Reset to free tier
+      credits: 10, // Reset to free tier
       subscription_id: null,
     })
-    .eq('id', userId)
+    .eq('email', userEmail)
 
-  console.log(`✅ Subscription cancelled for user ${userId}`)
+  if (error) {
+    console.error('Error cancelling subscription:', error)
+    return
+  }
+
+  console.log(`✅ Subscription cancelled for user ${userEmail}`)
 }
 
 async function handlePaymentSucceeded(invoice: any, supabase: any) {
@@ -162,16 +205,30 @@ async function handlePaymentSucceeded(invoice: any, supabase: any) {
     return
   }
 
+  // Get user email from Stripe customer
+  const customer = await stripe.customers.retrieve(subscription.customer)
+  const userEmail = customer.email
+
+  if (!userEmail) {
+    console.error('No email found for customer:', subscription.customer)
+    return
+  }
+
   // Refill credits for the new billing period
-  await supabase
+  const { error } = await supabase
     .from('users')
     .update({
-      credits_remaining: plan.credits, // Pro plan gets 200 credits
+      credits: plan.credits, // Pro plan gets 200 credits
       last_payment_date: new Date().toISOString(),
     })
-    .eq('id', userId)
+    .eq('email', userEmail)
 
-  console.log(`✅ Payment succeeded for user ${userId}, credits refilled`)
+  if (error) {
+    console.error('Error refilling credits:', error)
+    return
+  }
+
+  console.log(`✅ Payment succeeded for user ${userEmail}, credits refilled`)
 }
 
 async function handlePaymentFailed(invoice: any, supabase: any) {
@@ -183,13 +240,27 @@ async function handlePaymentFailed(invoice: any, supabase: any) {
     return
   }
 
+  // Get user email from Stripe customer
+  const customer = await stripe.customers.retrieve(subscription.customer)
+  const userEmail = customer.email
+
+  if (!userEmail) {
+    console.error('No email found for customer:', subscription.customer)
+    return
+  }
+
   // Mark subscription as past due
-  await supabase
+  const { error } = await supabase
     .from('users')
     .update({
       subscription_status: 'past_due',
     })
-    .eq('id', userId)
+    .eq('email', userEmail)
 
-  console.log(`❌ Payment failed for user ${userId}`)
+  if (error) {
+    console.error('Error marking subscription as past due:', error)
+    return
+  }
+
+  console.log(`❌ Payment failed for user ${userEmail}`)
 }
