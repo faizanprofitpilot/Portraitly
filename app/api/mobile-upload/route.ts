@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { validateFileUpload, sanitizeString } from "@/lib/api-security";
+import { validateFileUpload } from "@/middleware/security";
+import { sanitizeString } from "@/lib/api-security";
 
 export const dynamic = 'force-dynamic';
 

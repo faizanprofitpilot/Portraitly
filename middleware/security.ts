@@ -88,5 +88,5 @@ export function generateCSRFToken(): string {
 export function validateCSRFToken(token: string, sessionToken: string): boolean {
   // In a real implementation, you'd store and validate against a secure session token
   // For now, we'll use a simple validation
-  return token && sessionToken && token.length === 26
+  return !!(token && sessionToken && token.length === 26)
 }
