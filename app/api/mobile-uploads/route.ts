@@ -17,6 +17,11 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Session ID required' }, { status: 400 });
     }
 
+    // Validate session ID format
+    if (!/^upload_\d+_[a-z0-9]+$/.test(sessionId)) {
+      return NextResponse.json({ error: 'Invalid session ID format' }, { status: 400 });
+    }
+
     // Get uploads from database
     const { data: uploads, error } = await supabaseAdmin
       .from('mobile_uploads')
@@ -25,11 +30,8 @@ export async function GET(request: NextRequest) {
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('Database query error:', error);
       return NextResponse.json({ error: 'Failed to retrieve uploads' }, { status: 500 });
     }
-
-    console.log('📱 Found uploads in database:', uploads?.length || 0);
 
     // Generate signed URLs for each upload
     const uploadsWithUrls = await Promise.all(

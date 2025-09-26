@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { validateFileUpload, sanitizeString } from "@/lib/api-security";
 
 export const dynamic = 'force-dynamic';
 
@@ -14,32 +15,36 @@ export async function POST(req: Request) {
     const file = formData.get("file") as File;
     const sessionId = formData.get("sessionId") as string;
 
-    console.log('📱 Mobile upload request:', { 
-      hasFile: !!file, 
-      fileName: file?.name, 
-      fileSize: file?.size,
-      sessionId 
-    });
-
+    // Validate required fields
     if (!file || !sessionId) {
-      console.error('❌ Missing required fields:', { hasFile: !!file, hasSessionId: !!sessionId });
       return NextResponse.json(
         { error: "Missing file or sessionId" },
         { status: 400 }
       );
     }
 
-    if (!file.type.startsWith('image/')) {
-      console.error('❌ Invalid file type:', file.type);
-      return NextResponse.json({ error: 'File must be an image' }, { status: 400 });
+    // Sanitize session ID
+    const sanitizedSessionId = sanitizeString(sessionId);
+    if (!sanitizedSessionId || sanitizedSessionId.length < 10) {
+      return NextResponse.json(
+        { error: "Invalid session ID" },
+        { status: 400 }
+      );
     }
 
-    // Generate unique file name
-    const fileExt = file.name.split(".").pop();
-    const fileName = `${sessionId}_${Date.now()}.${fileExt}`;
-    const filePath = `${sessionId}/${fileName}`;
+    // Validate file upload
+    const fileValidation = validateFileUpload(file);
+    if (!fileValidation.valid) {
+      return NextResponse.json(
+        { error: fileValidation.error },
+        { status: 400 }
+      );
+    }
 
-    console.log('📤 Uploading to storage:', filePath);
+    // Generate unique file name with sanitized session ID
+    const fileExt = file.name.split(".").pop()?.toLowerCase();
+    const fileName = `${sanitizedSessionId}_${Date.now()}.${fileExt}`;
+    const filePath = `${sanitizedSessionId}/${fileName}`;
 
     // Upload to Supabase Storage
     const { error: storageError } = await supabaseAdmin.storage
@@ -50,53 +55,47 @@ export async function POST(req: Request) {
       });
 
     if (storageError) {
-      console.error("❌ Storage upload failed:", storageError.message);
       return NextResponse.json(
-        { error: storageError.message },
+        { error: "Upload failed. Please try again." },
         { status: 500 }
       );
     }
-
-    console.log('✅ Storage upload successful');
 
     // Get public URL
     const { data: publicUrl } = supabaseAdmin.storage
       .from("mobile-uploads")
       .getPublicUrl(filePath);
 
-    console.log('📝 Inserting metadata into database');
-
-    // Insert metadata into DB
+    // Insert metadata into DB with sanitized data
     const { error: dbError } = await supabaseAdmin
       .from("mobile_uploads")
       .insert([{ 
-        session_id: sessionId, 
+        session_id: sanitizedSessionId, 
         filename: fileName,
-        original_name: file.name,
+        original_name: sanitizeString(file.name),
         file_size: file.size,
         file_type: file.type
       }]);
 
     if (dbError) {
-      console.error("❌ DB insert failed:", dbError.message);
-      return NextResponse.json({ error: dbError.message }, { status: 500 });
+      return NextResponse.json(
+        { error: "Database error. Please try again." },
+        { status: 500 }
+      );
     }
-
-    console.log('✅ Database insert successful');
 
     return NextResponse.json({
       success: true,
       filename: fileName,
       fileUrl: publicUrl.publicUrl,
-      originalName: file.name,
+      originalName: sanitizeString(file.name),
       size: file.size,
       type: file.type,
-      sessionId,
+      sessionId: sanitizedSessionId,
     });
   } catch (err: any) {
-    console.error("❌ Unexpected error:", err.message);
     return NextResponse.json(
-      { error: err.message || "Unexpected server error" },
+      { error: "Upload failed. Please try again." },
       { status: 500 }
     );
   }
