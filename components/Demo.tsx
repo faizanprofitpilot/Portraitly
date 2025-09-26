@@ -334,27 +334,27 @@ export default function Demo() {
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto px-6 py-8">
+      <main className="max-w-6xl mx-auto px-4 md:px-6 py-6 md:py-8">
         {/* Demo Header */}
-        <div className="text-center mb-12">
-          <h1 className="text-6xl font-bold text-white mb-6">
+        <div className="text-center mb-8 md:mb-12 px-4">
+          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-4 md:mb-6">
             Welcome to{' '}
             <span className="bg-gradient-to-r from-accent-turquoise to-accent-emerald bg-clip-text text-transparent">
               Portraitly
             </span>
           </h1>
-          <p className="text-xl text-gray-300 mb-8 max-w-2xl mx-auto">
+          <p className="text-lg md:text-xl text-gray-300 mb-6 md:mb-8 max-w-2xl mx-auto">
             Upload a selfie and transform it into a professional headshot with AI magic!
           </p>
         </div>
 
 
         {/* Upload Section */}
-        <div className="bg-white/10 backdrop-blur-sm rounded-3xl p-8 border border-white/20 mb-8">
-          <div className="grid lg:grid-cols-2 gap-8">
+        <div className="bg-white/10 backdrop-blur-sm rounded-3xl p-4 md:p-8 border border-white/20 mb-6 md:mb-8">
+          <div className="grid lg:grid-cols-2 gap-6 md:gap-8">
             {/* Upload Area */}
             <div 
-              className={`border-2 border-dashed rounded-2xl p-8 text-center transition-all duration-200 ${
+              className={`border-2 border-dashed rounded-2xl p-4 md:p-8 text-center transition-all duration-200 ${
                 isDragOver 
                   ? 'border-accent-turquoise bg-accent-turquoise/10 scale-105' 
                   : 'border-white/30 hover:border-white/50'
@@ -465,19 +465,28 @@ export default function Demo() {
                 </p>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 {STYLE_OPTIONS.map((style) => (
                   <button
                     key={style.id}
                     onClick={() => setSelectedStyle(style.id)}
-                    className={`p-4 rounded-xl border-2 transition-all duration-200 text-left backdrop-blur-sm ${
+                    className={`group p-4 rounded-xl border-2 transition-all duration-300 text-left backdrop-blur-sm transform ${
                       selectedStyle === style.id
-                        ? 'border-accent-turquoise bg-accent-turquoise/20 shadow-lg'
-                        : 'border-white/20 bg-white/5 hover:bg-white/10 hover:border-white/30'
+                        ? 'border-accent-turquoise bg-accent-turquoise/20 shadow-xl scale-105 shadow-accent-turquoise/25'
+                        : 'border-white/20 bg-white/5 hover:bg-white/10 hover:border-white/30 hover:scale-102 hover:shadow-lg'
                     }`}
                   >
-                    <div className="font-semibold text-white mb-1">{style.name}</div>
-                    <div className="text-xs text-gray-300">{style.description}</div>
+                    <div className={`font-semibold mb-1 transition-colors duration-200 ${
+                      selectedStyle === style.id ? 'text-accent-turquoise' : 'text-white group-hover:text-accent-turquoise'
+                    }`}>
+                      {style.name}
+                    </div>
+                    <div className="text-xs text-gray-300 group-hover:text-gray-200 transition-colors duration-200">
+                      {style.description}
+                    </div>
+                    {selectedStyle === style.id && (
+                      <div className="absolute top-2 right-2 w-3 h-3 bg-accent-turquoise rounded-full animate-pulse"></div>
+                    )}
                   </button>
                 ))}
               </div>
@@ -493,7 +502,7 @@ export default function Demo() {
                   </p>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {[
                     { id: 'auto', name: 'Auto', description: 'Let AI decide based on image' },
                     { id: 'neutral', name: 'Neutral', description: 'Gender-neutral professional attire' },
@@ -503,14 +512,23 @@ export default function Demo() {
                     <button
                       key={option.id}
                       onClick={() => setGenderPreference(option.id as 'male' | 'female' | 'auto' | 'neutral')}
-                      className={`flex-1 p-3 rounded-lg border-2 transition-all duration-200 text-center backdrop-blur-sm ${
+                      className={`group relative p-3 rounded-lg border-2 transition-all duration-300 text-center backdrop-blur-sm transform ${
                         genderPreference === option.id
-                          ? 'border-accent-turquoise bg-accent-turquoise/20 shadow-lg'
-                          : 'border-white/20 bg-white/5 hover:bg-white/10 hover:border-white/30'
+                          ? 'border-accent-turquoise bg-accent-turquoise/20 shadow-xl scale-105 shadow-accent-turquoise/25'
+                          : 'border-white/20 bg-white/5 hover:bg-white/10 hover:border-white/30 hover:scale-102 hover:shadow-lg'
                       }`}
                     >
-                      <div className="font-semibold text-white mb-1">{option.name}</div>
-                      <div className="text-xs text-gray-300">{option.description}</div>
+                      <div className={`font-semibold mb-1 transition-colors duration-200 ${
+                        genderPreference === option.id ? 'text-accent-turquoise' : 'text-white group-hover:text-accent-turquoise'
+                      }`}>
+                        {option.name}
+                      </div>
+                      <div className="text-xs text-gray-300 group-hover:text-gray-200 transition-colors duration-200">
+                        {option.description}
+                      </div>
+                      {genderPreference === option.id && (
+                        <div className="absolute top-2 right-2 w-3 h-3 bg-accent-turquoise rounded-full animate-pulse"></div>
+                      )}
                     </button>
                   ))}
                 </div>
@@ -519,16 +537,20 @@ export default function Demo() {
               <button
                 onClick={handleGenerate}
                 disabled={selectedFiles.length === 0 || credits < selectedFiles.length || uploading}
-                className="w-full bg-gradient-to-r from-accent-turquoise to-accent-emerald text-white font-bold px-8 py-4 rounded-xl hover:from-accent-turquoise/90 hover:to-accent-emerald/90 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2 shadow-2xl"
+                className={`w-full bg-gradient-to-r from-accent-turquoise to-accent-emerald text-white font-bold px-8 py-4 rounded-xl transition-all duration-300 flex items-center justify-center space-x-2 shadow-2xl transform ${
+                  uploading 
+                    ? 'opacity-75 cursor-not-allowed scale-98' 
+                    : 'hover:from-accent-turquoise/90 hover:to-accent-emerald/90 hover:scale-105 active:scale-95'
+                } ${selectedFiles.length === 0 || credits < selectedFiles.length ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
                 {uploading ? (
                   <>
                     <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                    <span>Generating {selectedFiles.length > 1 ? `${selectedFiles.length} ` : ''}{STYLE_OPTIONS.find(s => s.id === selectedStyle)?.name} Headshot{selectedFiles.length > 1 ? 's' : ''}...</span>
+                    <span className="animate-pulse">Generating {selectedFiles.length > 1 ? `${selectedFiles.length} ` : ''}{STYLE_OPTIONS.find(s => s.id === selectedStyle)?.name} Headshot{selectedFiles.length > 1 ? 's' : ''}...</span>
                   </>
                 ) : (
                   <>
-                    <Camera className="h-5 w-5" />
+                    <Camera className="h-5 w-5 transition-transform duration-200 group-hover:rotate-12" />
                     <span>Generate {selectedFiles.length > 1 ? `${selectedFiles.length} ` : ''}{STYLE_OPTIONS.find(s => s.id === selectedStyle)?.name} Headshot{selectedFiles.length > 1 ? 's' : ''}</span>
                   </>
                 )}
